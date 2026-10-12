@@ -169,8 +169,14 @@ export function subscribeEraseObjectJobProgress(
         cleanup();
         try {
           handlers.onFailed({ reason: "trackingFailed" });
-        } catch {
+        } catch (teardownErr) {
           // onFailed may be what threw; the original error is rethrown below.
+          console.error("Ending the run after a stream handling error failed", teardownErr);
+          reportRunEndFailure(
+            "Ending an Erase Object run after a stream handling error failed",
+            teardownErr,
+            "erase-object",
+          );
         }
         throw err;
       }

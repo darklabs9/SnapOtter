@@ -822,6 +822,43 @@ describe("sign-pdf tells its own failures apart from a bad response", () => {
 
   // A fast sign answers twice. Once the streamed answer has failed to land,
   // the 200 behind it must not land it again or replace the error.
+
+  it("reports a teardown throw, leaving the root cause to surface, when the stream handling breaks", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    renderPanel();
+    const xhr = await apply();
+
+    const unsubscribe = useFileStore.subscribe(() => {
+      throw new Error("store broke");
+    });
+
+    try {
+      expect(() =>
+        act(() => {
+          FakeEventSource.instances[0].onmessage?.({
+            data: JSON.stringify({
+              type: "single",
+              phase: "complete",
+              result: { downloadUrl: DOWNLOAD_URL },
+            }),
+          });
+        }),
+      ).toThrow("store broke");
+
+      const calls = vi.mocked(captureHandledError).mock.calls;
+      const reports = calls.filter(
+        ([e]) =>
+          (e as Error).message === "Ending a Sign PDF run after a stream handling error failed",
+      );
+      expect(reports).toHaveLength(1);
+      expect((reports[0][0] as Error).cause).toMatchObject({ message: "store broke" });
+      expect(reports[0][1]).toEqual({ error_class: "bug", tool_id: "sign-pdf" });
+    } finally {
+      unsubscribe();
+      consoleError.mockRestore();
+    }
+  });
+
   it("ignores the sync answer after the streamed one failed to land", async () => {
     renderPanel();
     const xhr = await apply();

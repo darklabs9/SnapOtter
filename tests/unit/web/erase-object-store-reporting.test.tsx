@@ -702,6 +702,38 @@ describe("erase-object single file: a completed frame with nothing to download (
     }
   });
 
+  it("reports a teardown throw, leaving the root cause to surface, when the stream handling breaks", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    renderPanel();
+    const xhr = await submit();
+    xhr.respond(202, { jobId: "job-1", async: true });
+
+    const unsubscribe = useFileStore.subscribe(() => {
+      throw new Error("store broke");
+    });
+
+    try {
+      expect(() =>
+        FakeEventSource.instances[0].onmessage?.({
+          data: JSON.stringify({ type: "single", phase: "complete", result: GOOD_BODY }),
+        }),
+      ).toThrow("store broke");
+
+      const calls = vi.mocked(captureHandledError).mock.calls;
+      const reports = calls.filter(
+        ([e]) =>
+          (e as Error).message ===
+          "Ending an Erase Object run after a stream handling error failed",
+      );
+      expect(reports).toHaveLength(1);
+      expect((reports[0][0] as Error).cause).toMatchObject({ message: "store broke" });
+      expect(reports[0][1]).toEqual({ error_class: "bug", tool_id: "erase-object" });
+    } finally {
+      unsubscribe();
+      consoleError.mockRestore();
+    }
+  });
+
   it("still reads a throw while landing a good frame as ours", async () => {
     renderPanel();
     const xhr = await submit();
