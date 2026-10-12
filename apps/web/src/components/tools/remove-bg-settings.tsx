@@ -1,3 +1,4 @@
+import { HEX_COLOR_PATTERN } from "@snapotter/shared";
 import {
   ChevronDown,
   ChevronRight,
@@ -123,6 +124,12 @@ export function RemoveBgControls({
   const [gradColor2, setGradColor2] = useState("#764ba2");
   const [gradAngle, setGradAngle] = useState(180);
   const [bgImageFile, setBgImageFile] = useState<File | null>(null);
+
+  const isValidBgColor = bgType !== "color" || HEX_COLOR_PATTERN.test(bgColor);
+  const isValidGradColor =
+    bgType !== "gradient" ||
+    (HEX_COLOR_PATTERN.test(gradColor1) && HEX_COLOR_PATTERN.test(gradColor2));
+  const isImageValid = bgType !== "image" || bgImageFile !== null;
 
   // Effects
   const [blurEnabled, setBlurEnabled] = useState(false);
@@ -367,9 +374,16 @@ export function RemoveBgControls({
                 value={bgColor}
                 onChange={(e) => setBgColor(e.target.value)}
                 placeholder="#FF5500"
-                className="flex-1 px-2 py-1 rounded border border-border bg-background text-xs text-foreground"
+                className={`flex-1 px-2 py-1 rounded border bg-background text-xs text-foreground ${
+                  !isValidBgColor ? "border-destructive text-destructive" : "border-border"
+                }`}
               />
             </div>
+            {!isValidBgColor && (
+              <p className="text-[10px] text-destructive-ink">
+                {format(t.errors.invalidSetting, { setting: t.toolSettings["remove-bg"].color })}
+              </p>
+            )}
           </div>
         )}
 
@@ -416,6 +430,11 @@ export function RemoveBgControls({
                 title={t.toolSettings["remove-bg"].endColor}
               />
             </div>
+            {!isValidGradColor && (
+              <p className="text-[10px] text-destructive-ink">
+                {format(t.errors.invalidSetting, { setting: t.toolSettings["remove-bg"].gradient })}
+              </p>
+            )}
             <div>
               <div className="flex justify-between items-center">
                 <span className="text-xs text-muted-foreground">
@@ -450,19 +469,34 @@ export function RemoveBgControls({
                 </button>
               </div>
             ) : (
-              <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border text-xs text-muted-foreground cursor-pointer hover:border-primary/50 hover:text-foreground transition-colors">
-                <Upload className="h-3.5 w-3.5" />
-                {t.toolSettings["remove-bg"].chooseBackgroundImage}
-                <input
-                  type="file"
-                  accept="image/*,.avif,.heic,.heif,.hif"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) setBgImageFile(file);
-                  }}
-                />
-              </label>
+              <>
+                <label
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed text-xs cursor-pointer hover:border-primary/50 transition-colors ${
+                    !isImageValid
+                      ? "border-destructive text-destructive-ink"
+                      : "border-border text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  {t.toolSettings["remove-bg"].chooseBackgroundImage}
+                  <input
+                    type="file"
+                    accept="image/*,.avif,.heic,.heif,.hif"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setBgImageFile(file);
+                    }}
+                  />
+                </label>
+                {!isImageValid && (
+                  <p className="mt-1 text-[10px] text-destructive-ink">
+                    {format(t.errors.invalidSetting, {
+                      setting: t.toolSettings["remove-bg"].chooseBackgroundImage,
+                    })}
+                  </p>
+                )}
+              </>
             )}
           </div>
         )}
@@ -762,6 +796,19 @@ export function RemoveBgSettings({ onBgPreview }: RemoveBgSettingsProps = {}) {
       setBgImageBlobUrl(null);
     }
   }, [settings._bgImageFile]);
+
+  const bgType = (settings.backgroundType as string) || "transparent";
+  const bgColor = (settings.backgroundColor as string) || "#FFFFFF";
+  const gradColor1 = (settings.gradientColor1 as string) || "#667eea";
+  const gradColor2 = (settings.gradientColor2 as string) || "#764ba2";
+  const bgImageFile = settings._bgImageFile as File | undefined;
+
+  const isValidBgColor = bgType !== "color" || HEX_COLOR_PATTERN.test(bgColor);
+  const isValidGradColor =
+    bgType !== "gradient" ||
+    (HEX_COLOR_PATTERN.test(gradColor1) && HEX_COLOR_PATTERN.test(gradColor2));
+  const isImageValid = bgType !== "image" || bgImageFile !== undefined;
+  const isInputValid = isValidBgColor && isValidGradColor && isImageValid;
 
   const hasFile = files.length > 0;
   // A result counts while its file is the one loaded and the processor still
@@ -1076,7 +1123,7 @@ export function RemoveBgSettings({ onBgPreview }: RemoveBgSettingsProps = {}) {
           type="button"
           data-testid="remove-background-submit"
           onClick={handleRemoveBg}
-          disabled={!hasFile || processing}
+          disabled={!hasFile || processing || !isInputValid}
           className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {files.length > 1
@@ -1095,7 +1142,7 @@ export function RemoveBgSettings({ onBgPreview }: RemoveBgSettingsProps = {}) {
               type="button"
               data-testid="remove-background-download-effects"
               onClick={handleDownloadWithEffects}
-              disabled={applyingEffects}
+              disabled={applyingEffects || !isInputValid}
               className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <Download className="h-4 w-4" />

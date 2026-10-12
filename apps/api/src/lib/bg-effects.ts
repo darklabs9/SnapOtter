@@ -1,3 +1,4 @@
+import { HEX_COLOR_PATTERN } from "@snapotter/shared";
 import sharp, { type Sharp } from "sharp";
 
 export type BgOutputFormat = "png" | "webp" | "avif";
@@ -9,9 +10,6 @@ export const BG_FORMAT_CONTENT_TYPES: Record<BgOutputFormat, string> = {
   webp: "image/webp",
   avif: "image/avif",
 };
-
-/** `#RGB`, `#RRGGBB` or either without the hash. The only color shapes this module reads. */
-export const HEX_COLOR_PATTERN = /^#?(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 
 /** Lower-case `#rrggbb` for any string HEX_COLOR_PATTERN accepts. */
 export function normalizeHexColor(color: string): string {
