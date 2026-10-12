@@ -4,7 +4,12 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { extname, join } from "node:path";
 import { removeBackgroundAnimated } from "@snapotter/ai";
-import { BG_REMOVAL_MODELS, getBundleForTool, TOOL_BUNDLE_MAP } from "@snapotter/shared";
+import {
+  BG_REMOVAL_MODELS,
+  getBundleForTool,
+  HEX_COLOR_PATTERN,
+  TOOL_BUNDLE_MAP,
+} from "@snapotter/shared";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { env } from "../../config.js";
@@ -28,24 +33,50 @@ import { getAuthUser } from "../../plugins/auth.js";
 import { buildAsyncAcceptedPayload } from "../async-response.js";
 import { registerToolProcessFn } from "../tool-factory.js";
 
-const settingsSchema = z.object({
-  model: z.enum(BG_REMOVAL_MODELS).optional(),
-  outputFormat: z.enum(["webp", "gif", "apng"]).optional(),
-  backgroundType: z.enum(["transparent", "color", "gradient", "blur", "image"]).optional(),
-  backgroundColor: z.string().optional(),
-  gradientColor1: z.string().optional(),
-  gradientColor2: z.string().optional(),
-  gradientAngle: z.number().optional(),
-  blurIntensity: z.number().min(0).max(100).optional(),
-  shadowEnabled: z.boolean().optional(),
-  shadowOpacity: z.number().min(0).max(100).optional(),
-  edgeRefine: z.number().int().min(0).max(3).optional(),
-  decontaminate: z.boolean().optional(),
-});
+const settingsSchema = z
+  .object({
+    model: z.enum(BG_REMOVAL_MODELS).optional(),
+    outputFormat: z.enum(["webp", "gif", "apng"]).optional(),
+    backgroundType: z.enum(["transparent", "color", "gradient", "blur", "image"]).optional(),
+    backgroundColor: z.string().regex(HEX_COLOR_PATTERN, "Not a valid hex color").optional(),
+    gradientColor1: z.string().regex(HEX_COLOR_PATTERN, "Not a valid hex color").optional(),
+    gradientColor2: z.string().regex(HEX_COLOR_PATTERN, "Not a valid hex color").optional(),
+    gradientAngle: z.number().optional(),
+    blurIntensity: z.number().min(0).max(100).optional(),
+    shadowEnabled: z.boolean().optional(),
+    shadowOpacity: z.number().min(0).max(100).optional(),
+    edgeRefine: z.number().int().min(0).max(3).optional(),
+    decontaminate: z.boolean().optional(),
+  })
+  .superRefine((s, ctx) => {
+    if (s.backgroundType === "color" && !s.backgroundColor) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["backgroundColor"],
+        message: "A color background needs backgroundColor",
+      });
+    }
+    if (s.backgroundType === "gradient") {
+      if (!s.gradientColor1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["gradientColor1"],
+          message: "A gradient background needs gradientColor1",
+        });
+      }
+      if (!s.gradientColor2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["gradientColor2"],
+          message: "A gradient background needs gradientColor2",
+        });
+      }
+    }
+  });
 
 // The worker also receives the staged background-image storage key (never
 // persisted to the audit row — passed via dbSettings redaction on enqueue).
-const jobSettingsSchema = settingsSchema.extend({ bgImageKey: z.string().optional() });
+const jobSettingsSchema = settingsSchema.and(z.object({ bgImageKey: z.string().optional() }));
 
 type Settings = z.infer<typeof settingsSchema>;
 

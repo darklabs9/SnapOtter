@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { removeBackground } from "@snapotter/ai";
-import { getBundleForTool, TOOL_BUNDLE_MAP } from "@snapotter/shared";
+import { getBundleForTool, HEX_COLOR_PATTERN, TOOL_BUNDLE_MAP } from "@snapotter/shared";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import sharp from "sharp";
 import { z } from "zod";
@@ -28,17 +28,34 @@ import { receiveUpload } from "../../lib/upload-stream.js";
 import { getAuthUser } from "../../plugins/auth.js";
 import { buildAsyncAcceptedPayload } from "../async-response.js";
 
-const HEX_RE = /^#[0-9a-fA-F]{6}$/;
-
-const settingsSchema = z.object({
-  backgroundType: z.enum(["color", "gradient"]).default("color"),
-  color: z.string().regex(HEX_RE).default("#ffffff"),
-  gradientColor1: z.string().regex(HEX_RE).optional(),
-  gradientColor2: z.string().regex(HEX_RE).optional(),
-  gradientAngle: z.number().int().min(0).max(360).default(180),
-  feather: z.number().int().min(0).max(20).default(0),
-  format: z.enum(["png", "webp"]).default("png"),
-});
+const settingsSchema = z
+  .object({
+    backgroundType: z.enum(["color", "gradient"]).default("color"),
+    color: z.string().regex(HEX_COLOR_PATTERN, "Not a valid hex color").default("#ffffff"),
+    gradientColor1: z.string().regex(HEX_COLOR_PATTERN, "Not a valid hex color").optional(),
+    gradientColor2: z.string().regex(HEX_COLOR_PATTERN, "Not a valid hex color").optional(),
+    gradientAngle: z.number().int().min(0).max(360).default(180),
+    feather: z.number().int().min(0).max(20).default(0),
+    format: z.enum(["png", "webp"]).default("png"),
+  })
+  .superRefine((s, ctx) => {
+    if (s.backgroundType === "gradient") {
+      if (!s.gradientColor1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["gradientColor1"],
+          message: "Gradient background requires gradientColor1",
+        });
+      }
+      if (!s.gradientColor2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["gradientColor2"],
+          message: "Gradient background requires gradientColor2",
+        });
+      }
+    }
+  });
 
 /**
  * Soften the alpha edges of a subject PNG by blurring its alpha channel.
@@ -98,8 +115,8 @@ registerAiJobHandler("background-replace", async (input, data, ctx) => {
     const gradBg = await createGradientBackground(
       meta.width,
       meta.height,
-      settings.gradientColor1 ?? "#ffffff",
-      settings.gradientColor2 ?? "#000000",
+      settings.gradientColor1!,
+      settings.gradientColor2!,
       settings.gradientAngle,
     );
     composited = await sharp(gradBg)

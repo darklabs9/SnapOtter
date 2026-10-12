@@ -1,4 +1,4 @@
-import { HEX_COLOR_PATTERN } from "@snapotter/shared";
+import { normalizeHexColor } from "@snapotter/shared";
 import sharp, { type Sharp } from "sharp";
 
 export type BgOutputFormat = "png" | "webp" | "avif";
@@ -10,14 +10,6 @@ export const BG_FORMAT_CONTENT_TYPES: Record<BgOutputFormat, string> = {
   webp: "image/webp",
   avif: "image/avif",
 };
-
-/** Lower-case `#rrggbb` for any string HEX_COLOR_PATTERN accepts. */
-export function normalizeHexColor(color: string): string {
-  if (!HEX_COLOR_PATTERN.test(color)) throw new Error(`Not a hex color: ${color}`);
-  let hex = color.replace("#", "").toLowerCase();
-  if (hex.length === 3) hex = [...hex].map((c) => c + c).join("");
-  return `#${hex}`;
-}
 
 function hexToRgb(color: string): { r: number; g: number; b: number } {
   const hex = normalizeHexColor(color).slice(1);
