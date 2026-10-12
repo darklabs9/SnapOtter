@@ -535,7 +535,14 @@ export async function registerMfa(app: FastifyInstance): Promise<void> {
       }
 
       // Delete the challenge token and any failed-attempt counter
-      await redis.del(`mfa:${mfaToken}`, `mfa:attempts:${mfaToken}`);
+      const deletedTokenCount = await redis.del(`mfa:${mfaToken}`);
+      if (deletedTokenCount === 0) {
+        return reply.status(401).send({
+          error: "MFA challenge already consumed",
+          code: "MFA_EXPIRED",
+        });
+      }
+      await redis.del(`mfa:attempts:${mfaToken}`);
 
       // Create session (same as normal login completion)
       const token = createSessionToken();
@@ -641,11 +648,19 @@ export async function registerMfa(app: FastifyInstance): Promise<void> {
       }
 
       // Activate MFA and clear the enrollment token + any failed-attempt counter.
+      const deletedEnrollCount = await redis.del(`mfa:enroll:${enrollmentToken}`);
+      if (deletedEnrollCount === 0) {
+        return reply.status(401).send({
+          error: "Enrollment challenge already consumed",
+          code: "MFA_EXPIRED",
+        });
+      }
+      await redis.del(`mfa:enroll:attempts:${enrollmentToken}`);
+
       await db
         .update(schema.users)
         .set({ totpEnabled: true, updatedAt: new Date() })
         .where(eq(schema.users.id, userId));
-      await redis.del(`mfa:enroll:${enrollmentToken}`, `mfa:enroll:attempts:${enrollmentToken}`);
 
       // Create a session, same as the complete route's login completion.
       const token = createSessionToken();
