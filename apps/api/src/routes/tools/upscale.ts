@@ -273,30 +273,86 @@ export function registerUpscale(app: FastifyInstance) {
   // as a step in automation pipelines (without progress callbacks).
   registerToolProcessFn({
     toolId: "upscale",
-    settingsSchema: z.object({
-      scale: z.union([z.number(), z.string()]).transform(Number).default(2),
-    }),
+    settingsSchema,
     process: async (inputBuffer, settings, filename, ctx) => {
-      const scale = Number((settings as { scale?: number }).scale) || 2;
+      const s = settings as z.infer<typeof settingsSchema>;
+      const scale = s.scale;
+      const model = s.model;
+      const faceEnhance = s.faceEnhance;
+      const denoise = s.denoise;
+      let format = s.format;
+      const outputQuality = s.quality;
+
       const orientedBuffer = await autoOrient(inputBuffer);
       const scratchDir = ctx?.scratchDir ?? join(tmpdir(), "snapotter-scratch", randomUUID());
       const needsCleanup = !ctx?.scratchDir;
       if (needsCleanup) await mkdir(scratchDir, { recursive: true });
       try {
-        const result = await upscale(orientedBuffer, scratchDir, { scale, signal: ctx?.signal });
-        const outputFormat = await resolveOutputFormat(inputBuffer, filename);
-        let outputBuffer = result.buffer;
-        if (outputFormat.format !== "png") {
-          outputBuffer = await sharp(result.buffer)
-            .toFormat(outputFormat.format, outputFormat.encoderOptions)
-            .toBuffer();
+        if (format === "auto") {
+          const detected = await resolveOutputFormat(inputBuffer, filename);
+          format = detected.format === "jpeg" ? "jpg" : detected.format;
         }
-        const ext = outputFormat.format === "jpeg" ? "jpg" : outputFormat.format;
+
+        const needsNodeConversion = ["heic", "heif", "avif", "jxl"].includes(format);
+        const pythonFormat = needsNodeConversion ? "png" : format;
+
+        const result = await upscale(orientedBuffer, scratchDir, {
+          scale,
+          model,
+          faceEnhance,
+          denoise,
+          format: pythonFormat,
+          quality: outputQuality,
+          signal: ctx?.signal,
+        });
+
+        let outputBuffer = result.buffer;
+        let finalFormat = result.format;
+        if (needsNodeConversion) {
+          if (format === "heic" || format === "heif") {
+            outputBuffer = await encodeHeic(result.buffer, outputQuality);
+            finalFormat = format;
+          } else if (format === "jxl") {
+            outputBuffer = await encodeJxl(result.buffer, outputQuality);
+            finalFormat = "jxl";
+          } else if (format === "avif") {
+            outputBuffer = await sharp(result.buffer).avif({ quality: outputQuality }).toBuffer();
+            finalFormat = "avif";
+          }
+        }
+
+        const EXT_MAP: Record<string, string> = {
+          jpeg: "jpg",
+          jpg: "jpg",
+          png: "png",
+          webp: "webp",
+          tiff: "tiff",
+          gif: "gif",
+          avif: "avif",
+          heic: "heic",
+          heif: "heif",
+          jxl: "jxl",
+        };
+        const ext = EXT_MAP[finalFormat] || "png";
         const outputFilename = `${filename.replace(/\.[^.]+$/, "")}_${scale}x.${ext}`;
+
+        const CONTENT_TYPES: Record<string, string> = {
+          png: "image/png",
+          jpg: "image/jpeg",
+          jpeg: "image/jpeg",
+          webp: "image/webp",
+          tiff: "image/tiff",
+          gif: "image/gif",
+          avif: "image/avif",
+          heic: "image/heic",
+          heif: "image/heif",
+          jxl: "image/jxl",
+        };
+
         return {
           buffer: outputBuffer,
           filename: outputFilename,
-          contentType: outputFormat.contentType,
+          contentType: CONTENT_TYPES[finalFormat] || "image/png",
         };
       } finally {
         if (needsCleanup) await rm(scratchDir, { recursive: true, force: true }).catch(() => {});
