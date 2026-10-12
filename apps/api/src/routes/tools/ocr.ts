@@ -115,12 +115,7 @@ registerToolProcessFn({
   settingsSchema,
   process: async (input, settings, filename, ctx) => {
     if (!ctx) throw new Error("OCR processing context is required");
-    const result = await processOcrJob(input, settings, filename, ctx);
-    return {
-      buffer: result.buffer,
-      filename: result.filename,
-      contentType: result.contentType,
-    };
+    return processOcrJob(input, settings, filename, ctx);
   },
 });
 

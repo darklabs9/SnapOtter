@@ -296,15 +296,20 @@ export function registerUpscale(app: FastifyInstance) {
         const needsNodeConversion = ["heic", "heif", "avif", "jxl"].includes(format);
         const pythonFormat = needsNodeConversion ? "png" : format;
 
-        const result = await upscale(orientedBuffer, scratchDir, {
-          scale,
-          model,
-          faceEnhance,
-          denoise,
-          format: pythonFormat,
-          quality: outputQuality,
-          signal: ctx?.signal,
-        });
+        const result = await upscale(
+          orientedBuffer,
+          scratchDir,
+          {
+            scale,
+            model,
+            faceEnhance,
+            denoise,
+            format: pythonFormat,
+            quality: outputQuality,
+            signal: ctx?.signal,
+          },
+          ctx ? (percent, stage) => ctx.report(percent, stage) : undefined,
+        );
 
         let outputBuffer = result.buffer;
         let finalFormat = result.format;
@@ -353,6 +358,11 @@ export function registerUpscale(app: FastifyInstance) {
           buffer: outputBuffer,
           filename: outputFilename,
           contentType: CONTENT_TYPES[finalFormat] || "image/png",
+          resultPayload: {
+            width: result.width,
+            height: result.height,
+            method: result.method,
+          },
         };
       } finally {
         if (needsCleanup) await rm(scratchDir, { recursive: true, force: true }).catch(() => {});
