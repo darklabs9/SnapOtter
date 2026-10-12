@@ -241,6 +241,57 @@ describe("feature-not-installed errors are translated (#1410)", () => {
     view.unmount();
   });
 
+  it("tool batch: upload errors are translated (#1436)", async () => {
+    const files = [
+      new File([new ArrayBuffer(16)], "a.png", { type: "image/png" }),
+      new File([new ArrayBuffer(16)], "b.png", { type: "image/png" }),
+    ];
+    useFileStore.getState().setFiles(files);
+    const view = await renderInDe(() => useToolProcessor("remove-background"));
+    act(() => {
+      void view.result.current.value.processAllFiles(files, {});
+    });
+
+    act(() => {
+      const xhr = xhrs[0];
+      xhr.status = 0;
+      xhr.onerror?.();
+    });
+
+    await vi.waitFor(
+      () => expect(useFileStore.getState().error).toBe(deErrors.processingInterruptedUnconfirmed),
+      {
+        timeout: 3_000,
+      },
+    );
+    view.unmount();
+  });
+
+  it("pipeline batch: processing timeouts are translated (#1436)", async () => {
+    const files = [
+      new File([new ArrayBuffer(16)], "a.png", { type: "image/png" }),
+      new File([new ArrayBuffer(16)], "b.png", { type: "image/png" }),
+    ];
+    useFileStore.getState().setFiles(files);
+    const view = await renderInDe(() => usePipelineProcessor());
+    act(() => {
+      void view.result.current.value.processAll(files, [
+        { id: "s1", toolId: "remove-background", settings: {} },
+      ]);
+    });
+
+    act(() => {
+      const xhr = xhrs[0];
+      xhr.status = 0;
+      xhr.ontimeout?.();
+    });
+
+    await vi.waitFor(() => expect(view.result.current.value.error).toBe(deErrors.requestTimedOut), {
+      timeout: 3_000,
+    });
+    view.unmount();
+  });
+
   it("falls back to the server's name for a bundle id this client doesn't know", async () => {
     const file = new File([new ArrayBuffer(16)], "photo.png", { type: "image/png" });
     useFileStore.getState().setFiles([file]);

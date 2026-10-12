@@ -5665,6 +5665,17 @@ export const es: TranslationKeys = {
     requestTimedOut: "La solicitud agotó el tiempo de espera",
     runInterrupted: "Se interrumpió el procesamiento. Ejecútalo de nuevo.",
     requestFailedWithStatus: "Error en la solicitud: {status}",
+    batchFailed: "Error en el procesamiento por lotes",
+    batchFailedWithStatus: "Error en el procesamiento por lotes: {status}",
+    allFilesFailed: "Error al procesar todos los archivos",
+    filesFailedSuffix_one: " (1 archivo fallido)",
+    filesFailedSuffix_other: " ({count} archivos fallidos)",
+    uploadTimeout:
+      "Se agotó el tiempo de carga. Comprueba tu conexión o intenta con un archivo más pequeño.",
+    processingInterruptedUnconfirmed:
+      "El procesamiento se interrumpió y el servidor nunca confirmó el trabajo. Vuelve a intentarlo cuando te conectes de nuevo.",
+    resultNoLongerAvailable:
+      "El resultado completado ya no está disponible. Ejecuta el trabajo de nuevo.",
   },
   sidebar: {
     sponsor: "Apóyanos",

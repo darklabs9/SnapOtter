@@ -5600,6 +5600,15 @@ export const ar: TranslationKeys = {
     requestTimedOut: "انتهت مهلة الطلب",
     runInterrupted: "تمت مقاطعة المعالجة. شغّلها مرة أخرى.",
     requestFailedWithStatus: "فشل الطلب: {status}",
+    batchFailed: "فشلت معالجة الدفعة",
+    batchFailedWithStatus: "فشلت معالجة الدفعة: {status}",
+    allFilesFailed: "فشلت معالجة جميع الملفات",
+    filesFailedSuffix_one: " (فشل ملف واحد)",
+    filesFailedSuffix_other: " (فشلت معالجة {count} ملفات)",
+    uploadTimeout: "انتهت مهلة الرفع. تحقق من اتصالك أو جرب ملفاً أصغر.",
+    processingInterruptedUnconfirmed:
+      "تمت مقاطعة المعالجة ولم يقم الخادم بتأكيد المهمة أبدًا. أعد المحاولة عند الاتصال مجددًا.",
+    resultNoLongerAvailable: "النتيجة المكتملة لم تعد متاحة. قم بتشغيل المهمة مرة أخرى.",
   },
   sidebar: {
     sponsor: "ادعمنا",

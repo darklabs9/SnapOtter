@@ -5661,6 +5661,16 @@ export const uk: TranslationKeys = {
     requestTimedOut: "Час очікування вичерпано",
     runInterrupted: "Обробку було перервано. Запустіть її знову.",
     requestFailedWithStatus: "Помилка запиту: {status}",
+    batchFailed: "Помилка пакетної обробки",
+    batchFailedWithStatus: "Помилка пакетної обробки: {status}",
+    allFilesFailed: "Не вдалося обробити всі файли",
+    filesFailedSuffix_one: " (1 файл з помилкою)",
+    filesFailedSuffix_other: " (файлів з помилкою: {count})",
+    uploadTimeout:
+      "Час очікування завантаження минув. Перевірте з'єднання або спробуйте менший файл.",
+    processingInterruptedUnconfirmed:
+      "Обробку було перервано, і сервер так і не підтвердив завдання. Повторіть спробу після відновлення з'єднання.",
+    resultNoLongerAvailable: "Готовий результат більше недоступний. Запустіть завдання ще раз.",
   },
   sidebar: {
     sponsor: "Підтримайте нас",

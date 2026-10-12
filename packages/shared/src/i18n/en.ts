@@ -5575,6 +5575,15 @@ export const en = {
     requestTimedOut: "Request timed out",
     runInterrupted: "Processing was interrupted. Run it again.",
     requestFailedWithStatus: "Request failed: {status}",
+    batchFailed: "Batch processing failed",
+    batchFailedWithStatus: "Batch processing failed: {status}",
+    allFilesFailed: "All files failed processing",
+    filesFailedSuffix_one: " (1 file failed)",
+    filesFailedSuffix_other: " ({count} files failed)",
+    uploadTimeout: "The upload timed out. Check your connection or try a smaller file.",
+    processingInterruptedUnconfirmed:
+      "Processing was interrupted and the server never confirmed the job. Retry when reconnected.",
+    resultNoLongerAvailable: "Completed result is no longer available. Run the job again.",
   },
   sidebar: {
     tools: "Tools",

@@ -5600,6 +5600,16 @@ export const ja: TranslationKeys = {
     requestTimedOut: "リクエストがタイムアウトしました",
     runInterrupted: "処理が中断されました。もう一度実行してください。",
     requestFailedWithStatus: "リクエストに失敗しました：{status}",
+    batchFailed: "バッチ処理に失敗しました",
+    batchFailedWithStatus: "バッチ処理に失敗しました: {status}",
+    allFilesFailed: "すべてのファイルの処理に失敗しました",
+    filesFailedSuffix_one: " (1つのファイルが失敗)",
+    filesFailedSuffix_other: " ({count}個のファイルが失敗)",
+    uploadTimeout:
+      "アップロードがタイムアウトしました。接続を確認するか、小さなファイルをお試しください。",
+    processingInterruptedUnconfirmed:
+      "処理が中断され、サーバーはジョブを確認しませんでした。再接続時にもう一度お試しください。",
+    resultNoLongerAvailable: "完了した結果はもう利用できません。ジョブを再度実行してください。",
   },
   sidebar: {
     sponsor: "支援する",

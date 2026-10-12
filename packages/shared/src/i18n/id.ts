@@ -5650,6 +5650,15 @@ export const id: TranslationKeys = {
     requestTimedOut: "Permintaan habis waktu",
     runInterrupted: "Pemrosesan terputus. Jalankan lagi.",
     requestFailedWithStatus: "Permintaan gagal: {status}",
+    batchFailed: "Pemrosesan batch gagal",
+    batchFailedWithStatus: "Pemrosesan batch gagal: {status}",
+    allFilesFailed: "Gagal memproses semua file",
+    filesFailedSuffix_one: " (1 file gagal)",
+    filesFailedSuffix_other: " ({count} file gagal)",
+    uploadTimeout: "Waktu unggah habis. Periksa koneksi Anda atau coba file yang lebih kecil.",
+    processingInterruptedUnconfirmed:
+      "Pemrosesan terputus dan server tidak pernah mengonfirmasi pekerjaan tersebut. Coba lagi saat terhubung kembali.",
+    resultNoLongerAvailable: "Hasil yang selesai tidak lagi tersedia. Jalankan pekerjaan lagi.",
   },
   sidebar: {
     sponsor: "Dukung kami",

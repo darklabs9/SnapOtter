@@ -5430,6 +5430,15 @@ export const hi: TranslationKeys = {
     requestTimedOut: "अनुरोध का समय समाप्त हो गया",
     runInterrupted: "प्रोसेसिंग बाधित हो गई। इसे फिर से चलाएं।",
     requestFailedWithStatus: "अनुरोध विफल: {status}",
+    batchFailed: "बैच प्रोसेसिंग विफल रही",
+    batchFailedWithStatus: "बैच प्रोसेसिंग विफल रही: {status}",
+    allFilesFailed: "सभी फ़ाइलों की प्रोसेसिंग विफल रही",
+    filesFailedSuffix_one: " (1 फ़ाइल विफल रही)",
+    filesFailedSuffix_other: " ({count} फ़ाइलें विफल रहीं)",
+    uploadTimeout: "अपलोड का समय समाप्त हो गया। अपने कनेक्शन की जाँच करें या कोई छोटी फ़ाइल आज़माएँ।",
+    processingInterruptedUnconfirmed:
+      "प्रोसेसिंग बीच में ही रुक गई थी और सर्वर ने कार्य की कभी पुष्टि नहीं की। दोबारा कनेक्ट होने पर फिर से प्रयास करें।",
+    resultNoLongerAvailable: "पूर्ण परिणाम अब उपलब्ध नहीं है। कार्य को फिर से चलाएँ।",
   },
   sidebar: {
     sponsor: "हमारा समर्थन करें",

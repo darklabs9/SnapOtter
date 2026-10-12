@@ -5662,6 +5662,16 @@ export const ru: TranslationKeys = {
     requestTimedOut: "Время ожидания истекло",
     runInterrupted: "Обработка была прервана. Запустите её снова.",
     requestFailedWithStatus: "Ошибка запроса: {status}",
+    batchFailed: "Пакетная обработка завершилась с ошибкой",
+    batchFailedWithStatus: "Пакетная обработка завершилась с ошибкой: {status}",
+    allFilesFailed: "Ошибка обработки всех файлов",
+    filesFailedSuffix_one: " (1 файл с ошибкой)",
+    filesFailedSuffix_other: " (файлов с ошибкой: {count})",
+    uploadTimeout:
+      "Время ожидания загрузки истекло. Проверьте подключение или попробуйте файл меньшего размера.",
+    processingInterruptedUnconfirmed:
+      "Обработка была прервана, и сервер так и не подтвердил задание. Повторите попытку при восстановлении связи.",
+    resultNoLongerAvailable: "Готовый результат больше не доступен. Запустите задание еще раз.",
   },
   sidebar: {
     sponsor: "Поддержите нас",

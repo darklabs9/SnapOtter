@@ -15,6 +15,7 @@ import { appUrl, resolveServerUrls, serverUrl } from "@/lib/app-url";
 import { parseFileResultsHeader, unpackBatchZip } from "@/lib/batch-zip";
 import { featureNotInstalledMessage } from "@/lib/bundle-i18n";
 import { CancelRefusedError, failedCancelRequest, readCancelAnswer } from "@/lib/cancel-refusal";
+import { format } from "@/lib/format";
 import {
   checkToolResult,
   FRAME_HANDLING_FAILED,
@@ -526,7 +527,7 @@ export function useToolProcessor(toolId: string) {
                 // still leaves them pulsing at "processing" (#929).
                 clearJobEvidenceTimer();
                 if (elapsedRef.current) clearInterval(elapsedRef.current);
-                const message = "Processing was interrupted. Retry when reconnected.";
+                const message = t.errors.processingInterruptedUnconfirmed;
                 setProgress(IDLE_PROGRESS);
                 const teardownError = runEndWrites([
                   clearActiveJob,
@@ -581,7 +582,7 @@ export function useToolProcessor(toolId: string) {
                 result = checkToolResult<ProcessResult>(data.result);
               } catch (err) {
                 reportMalformedResult(err, { toolId });
-                endFailedRun("Invalid response from server");
+                endFailedRun(t.errors.invalidResponse);
                 return;
               }
               clearStallTimer();
@@ -1011,7 +1012,7 @@ export function useToolProcessor(toolId: string) {
             try {
               result = parseResultBody<ProcessResult>(xhr.responseText);
             } catch (err) {
-              failure = { message: "Invalid response from server" };
+              failure = { message: t.errors.invalidResponse };
               reportMalformedResult(err, { status: xhr.status, toolId });
             }
             if (result) {
@@ -1025,14 +1026,18 @@ export function useToolProcessor(toolId: string) {
             let message: string;
             try {
               const body = JSON.parse(xhr.responseText);
-              const parsed = parseApiError(body, xhr.status);
+              const parsed = parseApiError(
+                body,
+                xhr.status,
+                format(t.errors.processingFailedWithStatus, { status: xhr.status }),
+              );
               if (typeof parsed === "object" && parsed.type === "feature_not_installed") {
                 message = featureNotInstalledMessage(t, parsed, toolName);
               } else {
                 message = parsed as string;
               }
             } catch {
-              message = `Processing failed: ${xhr.status}`;
+              message = format(t.errors.processingFailedWithStatus, { status: xhr.status });
             }
             // Our API's 413 and a reverse proxy's (an HTML body-size page) mean
             // the same thing to the user, in their language (#1341).
@@ -1076,7 +1081,7 @@ export function useToolProcessor(toolId: string) {
           // A drop after the upload finished degraded to async above, so this
           // one cut the upload short (#1822).
           const teardownError = endSyncRun({
-            message: "Processing was interrupted. Retry when reconnected.",
+            message: t.errors.processingInterruptedUnconfirmed,
             category: "upload_error",
           });
           if (teardownError) throw teardownError.cause;
@@ -1092,7 +1097,7 @@ export function useToolProcessor(toolId: string) {
             eventSourceRef.current = null;
           }
           const teardownError = endSyncRun({
-            message: "Request timed out - the server may be overloaded. Try again.",
+            message: t.errors.uploadTimeout,
             category: "timeout",
           });
           if (teardownError) throw teardownError.cause;
@@ -1356,7 +1361,7 @@ export function useToolProcessor(toolId: string) {
           if (activeJobIdRef.current !== clientJobId) return;
           if (storeWasReset()) return;
           if (!extracted) {
-            failRun("Batch processing failed", reason);
+            failRun(t.errors.batchFailed, reason);
             return;
           }
           // Only a ZIP that opened is kept as the batch's download.
@@ -1428,7 +1433,7 @@ export function useToolProcessor(toolId: string) {
               .entries.some((entry) => entry.status === "processing");
             if (activeJobIdRef.current === clientJobId && unsettled) {
               try {
-                failRun("Batch processing failed", settle.reason);
+                failRun(t.errors.batchFailed, settle.reason);
               } catch (teardownErr) {
                 // Only the root cause is rethrown, so this one is reported
                 // here (#1812).
@@ -1488,7 +1493,7 @@ export function useToolProcessor(toolId: string) {
             return;
           }
           if (!zipBlob) {
-            failRun("Processing was interrupted. Retry when reconnected.", "download-failed");
+            failRun(t.errors.processingInterruptedUnconfirmed, "download-failed");
             return;
           }
           // A durable ZIP that won't settle still reports "download-failed",
@@ -1529,7 +1534,7 @@ export function useToolProcessor(toolId: string) {
               // A batch route without a durable result (custom sub-routes like
               // pdf-to-image): its ZIP only ever existed on the response this
               // run lost, so the outcome matches a plain interruption.
-              failRun("Processing was interrupted. Retry when reconnected.", "no-durable-result");
+              failRun(t.errors.processingInterruptedUnconfirmed, "no-durable-result");
               return;
             }
             // Replay-synthesized failures carry their message in a blank-name
@@ -1537,8 +1542,7 @@ export function useToolProcessor(toolId: string) {
             const syntheticError = frame.errors?.find((e) => e.filename === "")?.error;
             const allFilesFailed = frame.totalFiles > 0 && frame.failedFiles >= frame.totalFiles;
             failRun(
-              syntheticError ??
-                (allFilesFailed ? "All files failed processing" : "Batch processing failed"),
+              syntheticError ?? (allFilesFailed ? t.errors.allFilesFailed : t.errors.batchFailed),
               !syntheticError && allFilesFailed ? "all-files-failed" : "server-failed",
             );
           },
@@ -1655,7 +1659,11 @@ export function useToolProcessor(toolId: string) {
               serverCanceled = (body as { canceled?: boolean } | null)?.canceled === true;
               const code = (body as { code?: unknown } | null)?.code;
               if (typeof code === "string" && code.length > 0) reason = code;
-              const parsed = parseApiError(body, xhr.status);
+              const parsed = parseApiError(
+                body,
+                xhr.status,
+                format(t.errors.processingFailedWithStatus, { status: xhr.status }),
+              );
               if (typeof parsed === "object" && parsed.type === "feature_not_installed") {
                 errorMsg = featureNotInstalledMessage(t, parsed, toolName);
               } else {
@@ -1670,7 +1678,7 @@ export function useToolProcessor(toolId: string) {
               if (xhr.status >= 500 && degradeToAsync(`http-${xhr.status}`)) {
                 return;
               }
-              errorMsg = `Batch processing failed: ${xhr.status}`;
+              errorMsg = format(t.errors.batchFailedWithStatus, { status: xhr.status });
             }
             // Our API's 413 and a reverse proxy's mean the same thing (#1341).
             if (xhr.status === 413) errorMsg = t.errors.fileTooLarge;
@@ -1689,13 +1697,13 @@ export function useToolProcessor(toolId: string) {
           // events (#722 run-identity guard).
           if (activeJobIdRef.current !== clientJobId) return;
           if (degradeToAsync("socket")) return;
-          failRun("Processing was interrupted. Retry when reconnected.", "socket");
+          failRun(t.errors.processingInterruptedUnconfirmed, "socket");
         };
 
         xhr.ontimeout = () => {
           if (activeJobIdRef.current !== clientJobId) return;
           if (degradeToAsync("timeout")) return;
-          failRun("Request timed out - the server may be overloaded. Try again.", "timeout");
+          failRun(t.errors.uploadTimeout, "timeout");
         };
 
         xhr.open("POST", `${appUrl(apiToolPath(toolId))}/batch`);

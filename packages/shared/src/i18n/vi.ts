@@ -5635,6 +5635,16 @@ export const vi: TranslationKeys = {
     requestTimedOut: "Yêu cầu đã hết thời gian",
     runInterrupted: "Quá trình xử lý bị gián đoạn. Hãy chạy lại.",
     requestFailedWithStatus: "Yêu cầu thất bại: {status}",
+    batchFailed: "Xử lý hàng loạt không thành công",
+    batchFailedWithStatus: "Xử lý hàng loạt không thành công: {status}",
+    allFilesFailed: "Xử lý tất cả tệp không thành công",
+    filesFailedSuffix_one: " (1 tệp không thành công)",
+    filesFailedSuffix_other: " ({count} tệp không thành công)",
+    uploadTimeout:
+      "Đã hết thời gian tải lên. Hãy kiểm tra kết nối của bạn hoặc thử một tệp nhỏ hơn.",
+    processingInterruptedUnconfirmed:
+      "Quá trình xử lý bị gián đoạn và máy chủ chưa bao giờ xác nhận công việc. Vui lòng thử lại khi kết nối lại.",
+    resultNoLongerAvailable: "Kết quả hoàn thành không còn khả dụng. Vui lòng chạy lại công việc.",
   },
   sidebar: {
     sponsor: "Ủng hộ chúng tôi",

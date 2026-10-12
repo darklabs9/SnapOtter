@@ -250,7 +250,8 @@ describe("useToolProcessor single-file failure settle (#799)", () => {
 
     expect(useFileStore.getState().entries[0]).toMatchObject({
       status: "failed",
-      error: "Processing was interrupted. Retry when reconnected.",
+      error:
+        "Processing was interrupted and the server never confirmed the job. Retry when reconnected.",
       // Only a drop before the upload finished lands here (a later one
       // degrades to async), so it's an upload failure (#1822).
       errorCategory: "upload_error",
@@ -269,7 +270,7 @@ describe("useToolProcessor single-file failure settle (#799)", () => {
 
     expect(useFileStore.getState().entries[0]).toMatchObject({
       status: "failed",
-      error: "Request timed out - the server may be overloaded. Try again.",
+      error: "The upload timed out. Check your connection or try a smaller file.",
       errorCategory: "timeout",
     });
     expect(useFileStore.getState().processing).toBe(false);
@@ -413,7 +414,7 @@ describe("useToolProcessor single-file failure settle (#799)", () => {
 
     expect(useFileStore.getState().entries[0]).toMatchObject({
       status: "failed",
-      error: "Invalid response from server",
+      error: "Invalid response",
     });
     expect(useFileStore.getState().processing).toBe(false);
 
@@ -442,7 +443,8 @@ describe("useToolProcessor single-file failure settle (#799)", () => {
 
     expect(useFileStore.getState().entries[0]).toMatchObject({
       status: "failed",
-      error: "Processing was interrupted. Retry when reconnected.",
+      error:
+        "Processing was interrupted and the server never confirmed the job. Retry when reconnected.",
     });
     expect(useFileStore.getState().processing).toBe(false);
 
@@ -592,7 +594,7 @@ describe("useToolProcessor single-file failure settle (#799)", () => {
 /**
  * #1354: the sync response path used to parse the body and write the result
  * under one catch, so a throw from our own store writes on a perfectly good
- * 200 read as "Invalid response from server" and the exception vanished. The
+ * 200 read as "Invalid response" and the exception vanished. The
  * sync twin of #1287's SSE fix: only an unparseable body blames the server; a
  * handling error ends the run with the client-side message and is rethrown so
  * it reaches the console and Sentry's global handler.
@@ -748,10 +750,10 @@ describe("useToolProcessor sync result handling errors (#1354)", () => {
 
     act(() => respond(200, body));
 
-    expect(useFileStore.getState().error).toBe("Invalid response from server");
+    expect(useFileStore.getState().error).toBe("Invalid response");
     expect(useFileStore.getState().entries[0]).toMatchObject({
       status: "failed",
-      error: "Invalid response from server",
+      error: "Invalid response",
     });
     expect(useFileStore.getState().processing).toBe(false);
 
@@ -821,10 +823,10 @@ describe("useToolProcessor malformed 2xx results (#1740)", () => {
 
     expect(useFileStore.getState().entries[0]).toMatchObject({
       status: "failed",
-      error: "Invalid response from server",
+      error: "Invalid response",
       processedUrl: null,
     });
-    expect(useFileStore.getState().error).toBe("Invalid response from server");
+    expect(useFileStore.getState().error).toBe("Invalid response");
     expect(useFileStore.getState().processing).toBe(false);
     expect(result.current.resultPayload).toBeNull();
     expectReported("Tool result has no download URL");
@@ -839,7 +841,7 @@ describe("useToolProcessor malformed 2xx results (#1740)", () => {
 
     expect(useFileStore.getState().entries[0]).toMatchObject({
       status: "failed",
-      error: "Invalid response from server",
+      error: "Invalid response",
     });
     expectReported("Tool result body is not a JSON object");
 
@@ -904,10 +906,10 @@ describe("useToolProcessor malformed completed frames (#1794)", () => {
   function expectRunFailed(result: { current: { resultPayload: unknown; warning: unknown } }) {
     expect(useFileStore.getState().entries[0]).toMatchObject({
       status: "failed",
-      error: "Invalid response from server",
+      error: "Invalid response",
       processedUrl: null,
     });
-    expect(useFileStore.getState().error).toBe("Invalid response from server");
+    expect(useFileStore.getState().error).toBe("Invalid response");
     expect(useFileStore.getState().processing).toBe(false);
     expect(useFileStore.getState().activeJobId).toBeNull();
     expect(result.current.resultPayload).toBeNull();
@@ -1106,12 +1108,7 @@ describe("useToolProcessor settles the entry after the run's teardown (#1698)", 
       "<html>oops</html>",
       "Processing failed: 500",
     ],
-    [
-      "a 2xx body that does not parse",
-      200,
-      "<html>not json</html>",
-      "Invalid response from server",
-    ],
+    ["a 2xx body that does not parse", 200, "<html>not json</html>", "Invalid response"],
   ])("ends the run on %s when failing the entry throws", (_label, status, body, message) => {
     const { unmount } = startRun();
     breakEntryWrites();
@@ -1134,7 +1131,10 @@ describe("useToolProcessor settles the entry after the run's teardown (#1698)", 
       xhrs[0].onerror?.();
     });
 
-    expectRunEnded("Processing was interrupted. Retry when reconnected.", SYNC_SETTLE_REPORT);
+    expectRunEnded(
+      "Processing was interrupted and the server never confirmed the job. Retry when reconnected.",
+      SYNC_SETTLE_REPORT,
+    );
     unmount();
   });
 
@@ -1147,7 +1147,7 @@ describe("useToolProcessor settles the entry after the run's teardown (#1698)", 
     });
 
     expectRunEnded(
-      "Request timed out - the server may be overloaded. Try again.",
+      "The upload timed out. Check your connection or try a smaller file.",
       SYNC_SETTLE_REPORT,
     );
     unmount();
@@ -1185,7 +1185,10 @@ describe("useToolProcessor settles the entry after the run's teardown (#1698)", 
       } as MessageEvent);
     });
 
-    expectRunEnded("Processing was interrupted. Retry when reconnected.", TOOL_SETTLE_REPORT);
+    expectRunEnded(
+      "Processing was interrupted and the server never confirmed the job. Retry when reconnected.",
+      TOOL_SETTLE_REPORT,
+    );
     unmount();
   });
 
@@ -1331,8 +1334,9 @@ describe("useToolProcessor settles the entry after the run's teardown (#1698)", 
  * the run's job ref kept pointing at a run that was over.
  */
 describe("useToolProcessor ends a sync run whose error write throws (#1791)", () => {
-  const INTERRUPTED = "Processing was interrupted. Retry when reconnected.";
-  const TIMED_OUT = "Request timed out - the server may be overloaded. Try again.";
+  const INTERRUPTED =
+    "Processing was interrupted and the server never confirmed the job. Retry when reconnected.";
+  const TIMED_OUT = "The upload timed out. Check your connection or try a smaller file.";
   const RESULT = {
     jobId: "server-job",
     downloadUrl: "/api/v1/download/server-job/clip_trimmed.mp4",
@@ -1406,7 +1410,7 @@ describe("useToolProcessor ends a sync run whose error write throws (#1791)", ()
     [
       "a 2xx body that does not parse",
       respond(200, "<html>not json</html>"),
-      "Invalid response from server",
+      "Invalid response",
       null,
     ],
     [

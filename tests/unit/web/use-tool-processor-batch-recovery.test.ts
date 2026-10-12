@@ -323,7 +323,7 @@ describe("useToolProcessor batch recovery (#750)", () => {
     });
 
     expect(useFileStore.getState().error).toBe(
-      "Processing was interrupted. Retry when reconnected.",
+      "Processing was interrupted and the server never confirmed the job. Retry when reconnected.",
     );
     expect(useFileStore.getState().processing).toBe(false);
 
@@ -610,7 +610,7 @@ describe("useToolProcessor batch recovery (#750)", () => {
 
     await settled(() => {
       expect(useFileStore.getState().error).toBe(
-        "Processing was interrupted. Retry when reconnected.",
+        "Processing was interrupted and the server never confirmed the job. Retry when reconnected.",
       );
     });
     expect(useFileStore.getState().processing).toBe(false);
@@ -666,7 +666,7 @@ describe("useToolProcessor batch recovery (#750)", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(useFileStore.getState().error).toBe(
-      "Processing was interrupted. Retry when reconnected.",
+      "Processing was interrupted and the server never confirmed the job. Retry when reconnected.",
     );
     expect(useFileStore.getState().processing).toBe(false);
 
@@ -1383,7 +1383,7 @@ describe("useToolProcessor ends a failed batch before failing its entries (#1778
     });
 
     expectRunEnded(
-      "Processing was interrupted. Retry when reconnected.",
+      "Processing was interrupted and the server never confirmed the job. Retry when reconnected.",
       "failed",
       "no-durable-result",
     );
@@ -1436,7 +1436,7 @@ describe("useToolProcessor ends a failed batch before failing its entries (#1778
     });
 
     expectRunEnded(
-      "Processing was interrupted. Retry when reconnected.",
+      "Processing was interrupted and the server never confirmed the job. Retry when reconnected.",
       "failed",
       "download-failed",
     );
@@ -1451,7 +1451,11 @@ describe("useToolProcessor ends a failed batch before failing its entries (#1778
       xhrs[0].onerror?.();
     });
 
-    expectRunEnded("Processing was interrupted. Retry when reconnected.", "failed", "socket");
+    expectRunEnded(
+      "Processing was interrupted and the server never confirmed the job. Retry when reconnected.",
+      "failed",
+      "socket",
+    );
     unmount();
   });
 
@@ -1464,7 +1468,7 @@ describe("useToolProcessor ends a failed batch before failing its entries (#1778
     });
 
     expectRunEnded(
-      "Request timed out - the server may be overloaded. Try again.",
+      "The upload timed out. Check your connection or try a smaller file.",
       "failed",
       "timeout",
     );
@@ -2096,7 +2100,8 @@ describe("useToolProcessor batch ZIP that won't unpack (#1805)", () => {
  * settles the entries last, and still lets the first throw out.
  */
 describe("useToolProcessor ends a run whose exit writes throw (#1890)", () => {
-  const INTERRUPTED = "Processing was interrupted. Retry when reconnected.";
+  const INTERRUPTED =
+    "Processing was interrupted and the server never confirmed the job. Retry when reconnected.";
   const UNCONFIRMED =
     "Processing was interrupted and the server never confirmed the job. Retry when reconnected.";
   type FileStoreState = ReturnType<typeof useFileStore.getState>;

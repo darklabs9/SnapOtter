@@ -282,7 +282,7 @@ describe("usePipelineProcessor single-run recovery (#766)", () => {
     });
 
     expect(useFileStore.getState().error).toBe(
-      "Processing was interrupted. Retry when reconnected.",
+      "Processing was interrupted and the server never confirmed the job. Retry when reconnected.",
     );
     expect(useFileStore.getState().processing).toBe(false);
 
@@ -649,7 +649,7 @@ describe("usePipelineProcessor batch recovery (#766)", () => {
 
     await settled(() => {
       expect(useFileStore.getState().error).toBe(
-        "Processing was interrupted. Retry when reconnected.",
+        "Processing was interrupted and the server never confirmed the job. Retry when reconnected.",
       );
     });
 
@@ -983,7 +983,7 @@ describe("usePipelineProcessor single-run entry settle (#1352)", () => {
       xhrs[0].onload?.();
     });
 
-    expectEntryFailed("Invalid response from server");
+    expectEntryFailed("Invalid response");
     unmount();
   });
 
@@ -993,7 +993,9 @@ describe("usePipelineProcessor single-run entry settle (#1352)", () => {
       xhrs[0].onerror?.();
     });
 
-    expectEntryFailed("Processing was interrupted. Retry when reconnected.");
+    expectEntryFailed(
+      "Processing was interrupted and the server never confirmed the job. Retry when reconnected.",
+    );
     unmount();
   });
 
@@ -1003,7 +1005,7 @@ describe("usePipelineProcessor single-run entry settle (#1352)", () => {
       xhrs[0].ontimeout?.();
     });
 
-    expectEntryFailed("Request timed out - the server may be overloaded. Try again.");
+    expectEntryFailed("Request timed out");
     unmount();
   });
 
@@ -1114,7 +1116,9 @@ describe("usePipelineProcessor single-run entry settle (#1352)", () => {
       sendBatchFrame({ status: "failed", totalFiles: 1, completedFiles: 1, failedFiles: 1 });
     });
 
-    expectEntryFailed("Processing was interrupted. Retry when reconnected.");
+    expectEntryFailed(
+      "Processing was interrupted and the server never confirmed the job. Retry when reconnected.",
+    );
     unmount();
   });
 
@@ -1256,7 +1260,7 @@ describe("usePipelineProcessor single-run entry settle (#1352)", () => {
 /**
  * #1354: the sync response path parsed the body and wrote the result under
  * one catch, so a throw from our own store write on a good 200 read as
- * "Invalid response from server" and vanished. Only an unparseable body
+ * "Invalid response" and vanished. Only an unparseable body
  * blames the server now; a handling error ends the run with the client-side
  * message and is rethrown for the console and Sentry.
  */
@@ -1341,10 +1345,10 @@ describe("usePipelineProcessor sync result handling errors (#1354)", () => {
 
     act(() => respond(200, body));
 
-    expect(useFileStore.getState().error).toBe("Invalid response from server");
+    expect(useFileStore.getState().error).toBe("Invalid response");
     expect(useFileStore.getState().entries[0]).toMatchObject({
       status: "failed",
-      error: "Invalid response from server",
+      error: "Invalid response",
     });
     expect(useFileStore.getState().processing).toBe(false);
     unmount();
@@ -1384,10 +1388,10 @@ describe("usePipelineProcessor malformed 2xx results (#1740)", () => {
 
     expect(useFileStore.getState().entries[0]).toMatchObject({
       status: "failed",
-      error: "Invalid response from server",
+      error: "Invalid response",
       processedUrl: null,
     });
-    expect(useFileStore.getState().error).toBe("Invalid response from server");
+    expect(useFileStore.getState().error).toBe("Invalid response");
     expect(useFileStore.getState().processing).toBe(false);
     expectReported("Tool result has no download URL");
     unmount();
@@ -1398,7 +1402,7 @@ describe("usePipelineProcessor malformed 2xx results (#1740)", () => {
 
     act(() => respond(200, "<html>secret-token</html>"));
 
-    expect(useFileStore.getState().error).toBe("Invalid response from server");
+    expect(useFileStore.getState().error).toBe("Invalid response");
     expectReported("Tool result body is not a JSON object");
     unmount();
   });
@@ -1447,10 +1451,10 @@ describe("usePipelineProcessor malformed completed frames (#1794)", () => {
   function expectRunFailed() {
     expect(useFileStore.getState().entries[0]).toMatchObject({
       status: "failed",
-      error: "Invalid response from server",
+      error: "Invalid response",
       processedUrl: null,
     });
-    expect(useFileStore.getState().error).toBe("Invalid response from server");
+    expect(useFileStore.getState().error).toBe("Invalid response");
     expect(useFileStore.getState().processing).toBe(false);
     expect(useFileStore.getState().activeJobId).toBeNull();
     expect(latestSse().close).toHaveBeenCalled();
@@ -1608,7 +1612,8 @@ describe("usePipelineProcessor batch failure message (#1432)", () => {
  * and every failure exit settles what is still "processing" as failed.
  */
 describe("usePipelineProcessor batch entry settle (#1699)", () => {
-  const BATCH_FAILED = "Processing was interrupted. Retry when reconnected.";
+  const BATCH_FAILED =
+    "Processing was interrupted and the server never confirmed the job. Retry when reconnected.";
 
   function respondZip(index: number, names: Record<string, string> = ZIP_NAMES) {
     xhrs[index].upload.onload?.();
@@ -1726,7 +1731,7 @@ describe("usePipelineProcessor batch entry settle (#1699)", () => {
       xhrs[0].ontimeout?.();
     });
 
-    expectBatchFailed("Request timed out - the server may be overloaded. Try again.");
+    expectBatchFailed("Request timed out");
     unmount();
   });
 
@@ -2546,10 +2551,11 @@ describe("usePipelineProcessor batch ZIP that won't unpack (#1805)", () => {
  * still lets the first throw out.
  */
 describe("usePipelineProcessor ends a run whose exit writes throw (#1890)", () => {
-  const INTERRUPTED = "Processing was interrupted. Retry when reconnected.";
+  const INTERRUPTED =
+    "Processing was interrupted and the server never confirmed the job. Retry when reconnected.";
   const UNCONFIRMED =
     "Processing was interrupted and the server never confirmed the job. Retry when reconnected.";
-  const TIMED_OUT = "Request timed out - the server may be overloaded. Try again.";
+  const TIMED_OUT = "Request timed out";
   const HANDLER_FAILURE = "Something went wrong while tracking this job. Try again.";
   type FileStoreState = ReturnType<typeof useFileStore.getState>;
   let consoleError: ReturnType<typeof vi.spyOn>;

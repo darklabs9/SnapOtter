@@ -5668,6 +5668,17 @@ export const ptBR: TranslationKeys = {
     requestTimedOut: "A requisição expirou",
     runInterrupted: "O processamento foi interrompido. Execute novamente.",
     requestFailedWithStatus: "Falha na requisição: {status}",
+    batchFailed: "Falha no processamento em lote",
+    batchFailedWithStatus: "Falha no processamento em lote: {status}",
+    allFilesFailed: "Falha ao processar todos os arquivos",
+    filesFailedSuffix_one: " (1 arquivo falhou)",
+    filesFailedSuffix_other: " ({count} arquivos falharam)",
+    uploadTimeout:
+      "O tempo limite do upload esgotou. Verifique sua conexão ou tente usar um arquivo menor.",
+    processingInterruptedUnconfirmed:
+      "O processamento foi interrompido e o servidor nunca confirmou o trabalho. Tente novamente quando se reconectar.",
+    resultNoLongerAvailable:
+      "O resultado concluído não está mais disponível. Execute o trabalho novamente.",
   },
   sidebar: {
     sponsor: "Apoie-nos",

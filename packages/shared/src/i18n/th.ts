@@ -5563,6 +5563,15 @@ export const th: TranslationKeys = {
     requestTimedOut: "คำขอหมดเวลา",
     runInterrupted: "การประมวลผลถูกขัดจังหวะ เรียกใช้อีกครั้ง",
     requestFailedWithStatus: "คำขอล้มเหลว: {status}",
+    batchFailed: "การประมวลผลเป็นชุดงานล้มเหลว",
+    batchFailedWithStatus: "การประมวลผลเป็นชุดงานล้มเหลว: {status}",
+    allFilesFailed: "การประมวลผลไฟล์ทั้งหมดล้มเหลว",
+    filesFailedSuffix_one: " (ล้มเหลว 1 ไฟล์)",
+    filesFailedSuffix_other: " (ล้มเหลว {count} ไฟล์)",
+    uploadTimeout: "หมดเวลาการอัปโหลด ตรวจสอบการเชื่อมต่อของคุณหรือลองใช้ไฟล์ที่มีขนาดเล็กลง",
+    processingInterruptedUnconfirmed:
+      "การประมวลผลถูกขัดจังหวะและเซิร์ฟเวอร์ไม่เคยยืนยันงาน ลองอีกครั้งเมื่อเชื่อมต่อใหม่",
+    resultNoLongerAvailable: "ไม่มีผลลัพธ์ที่เสร็จสมบูรณ์แล้ว รันงานอีกครั้ง",
   },
   sidebar: {
     sponsor: "สนับสนุนเรา",

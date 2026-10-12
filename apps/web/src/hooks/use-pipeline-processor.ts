@@ -7,6 +7,7 @@ import { appUrl, resolveServerUrls, serverUrl } from "@/lib/app-url";
 import { parseFileResultsHeader, unpackBatchZip } from "@/lib/batch-zip";
 import { featureNotInstalledMessage } from "@/lib/bundle-i18n";
 import { failedCancelRequest, readCancelAnswer } from "@/lib/cancel-refusal";
+import { format } from "@/lib/format";
 import {
   checkToolResult,
   FRAME_HANDLING_FAILED,
@@ -435,7 +436,7 @@ export function usePipelineProcessor() {
                 // leaving the run in silent limbo.
                 clearJobEvidenceTimer();
                 if (elapsedRef.current) clearInterval(elapsedRef.current);
-                const message = "Processing was interrupted. Retry when reconnected.";
+                const message = t.errors.processingInterruptedUnconfirmed;
                 setProgress(IDLE_PROGRESS);
                 const teardownError = runEndWrites([
                   clearActiveJob,
@@ -489,7 +490,7 @@ export function usePipelineProcessor() {
                 result = checkToolResult<ProcessResult>(data.result);
               } catch (err) {
                 reportMalformedResult(err, {});
-                endFailedRun("Invalid response from server");
+                endFailedRun(t.errors.invalidResponse);
                 return;
               }
               clearStallTimer();
@@ -518,7 +519,7 @@ export function usePipelineProcessor() {
             }
 
             if (data.phase === "failed") {
-              endFailedRun(data.error || "Processing failed");
+              endFailedRun(data.error || t.errors.processingFailedNoDetail);
               return;
             }
 
@@ -756,7 +757,7 @@ export function usePipelineProcessor() {
             try {
               result = parseResultBody<ProcessResult>(xhr.responseText);
             } catch (err) {
-              failure = "Invalid response from server";
+              failure = t.errors.invalidResponse;
               reportMalformedResult(err, { status: xhr.status });
             }
             if (result) {
@@ -784,7 +785,11 @@ export function usePipelineProcessor() {
               if ((body as { canceled?: boolean } | null)?.canceled === true) {
                 message = "Canceled";
               } else {
-                const parsed = parseApiError(body, xhr.status);
+                const parsed = parseApiError(
+                  body,
+                  xhr.status,
+                  format(t.errors.processingFailedWithStatus, { status: xhr.status }),
+                );
                 if (typeof parsed === "object" && parsed.type === "feature_not_installed") {
                   message = featureNotInstalledMessage(t, parsed);
                 } else {
@@ -792,7 +797,7 @@ export function usePipelineProcessor() {
                 }
               }
             } catch {
-              message = `Processing failed: ${xhr.status}`;
+              message = format(t.errors.processingFailedWithStatus, { status: xhr.status });
             }
             failure = message;
           }
@@ -846,7 +851,7 @@ export function usePipelineProcessor() {
             eventSourceRef.current.close();
             eventSourceRef.current = null;
           }
-          const teardownError = endSyncRun("Processing was interrupted. Retry when reconnected.");
+          const teardownError = endSyncRun(t.errors.processingInterruptedUnconfirmed);
           if (teardownError) throw teardownError.cause;
         };
 
@@ -859,9 +864,7 @@ export function usePipelineProcessor() {
             eventSourceRef.current.close();
             eventSourceRef.current = null;
           }
-          const teardownError = endSyncRun(
-            "Request timed out - the server may be overloaded. Try again.",
-          );
+          const teardownError = endSyncRun(t.errors.requestTimedOut);
           if (teardownError) throw teardownError.cause;
         };
 
@@ -1004,7 +1007,7 @@ export function usePipelineProcessor() {
           // one meanwhile, and its writes would land on that run's state.
           if (activeJobIdRef.current !== clientJobId) return;
           if (!extracted) {
-            failRun("Batch processing failed");
+            failRun(t.errors.batchFailed);
             return;
           }
           // Only a ZIP that opened is kept as the batch's download.
@@ -1060,7 +1063,7 @@ export function usePipelineProcessor() {
               .entries.some((entry) => entry.status === "processing");
             if (activeJobIdRef.current === clientJobId && unsettled) {
               try {
-                failRun("Batch processing failed");
+                failRun(t.errors.batchFailed);
               } catch (teardownErr) {
                 // Only the root cause is rethrown, so this one is reported
                 // here (#1812).
@@ -1115,7 +1118,7 @@ export function usePipelineProcessor() {
             return;
           }
           if (!zipBlob) {
-            failRun("Processing was interrupted. Retry when reconnected.");
+            failRun(t.errors.processingInterruptedUnconfirmed);
             return;
           }
           await settleOrFail(zipBlob, fileResults);
@@ -1135,7 +1138,7 @@ export function usePipelineProcessor() {
             if (frame.status === "completed") {
               // No durable result to recover from: the ZIP only ever existed
               // on the response this run lost.
-              failRun("Processing was interrupted. Retry when reconnected.");
+              failRun(t.errors.processingInterruptedUnconfirmed);
               return;
             }
             // Replay-synthesized failures carry their message in a blank-name
@@ -1144,8 +1147,8 @@ export function usePipelineProcessor() {
             failRun(
               syntheticError ??
                 (frame.totalFiles > 0 && frame.failedFiles >= frame.totalFiles
-                  ? "All files failed processing"
-                  : "Batch processing failed"),
+                  ? t.errors.allFilesFailed
+                  : t.errors.batchFailed),
             );
           },
         };
@@ -1255,10 +1258,19 @@ export function usePipelineProcessor() {
                 const first = body.errors[0];
                 errorMsg = first.error;
                 if (body.errors.length > 1) {
-                  errorMsg += ` (${body.errors.length} files failed)`;
+                  errorMsg += format(
+                    body.errors.length === 1
+                      ? t.errors.filesFailedSuffix_one
+                      : t.errors.filesFailedSuffix_other,
+                    { count: body.errors.length },
+                  );
                 }
               } else {
-                const parsed = parseApiError(body, xhr.status);
+                const parsed = parseApiError(
+                  body,
+                  xhr.status,
+                  format(t.errors.processingFailedWithStatus, { status: xhr.status }),
+                );
                 if (typeof parsed === "object" && parsed.type === "feature_not_installed") {
                   errorMsg = featureNotInstalledMessage(t, parsed);
                 } else {
@@ -1274,7 +1286,7 @@ export function usePipelineProcessor() {
               ) {
                 return;
               }
-              errorMsg = `Batch processing failed: ${xhr.status}`;
+              errorMsg = format(t.errors.batchFailedWithStatus, { status: xhr.status });
             }
             failRun(errorMsg);
           })();
@@ -1283,13 +1295,13 @@ export function usePipelineProcessor() {
         xhr.onerror = () => {
           if (activeJobIdRef.current !== clientJobId) return;
           if (degradeToAsync("socket")) return;
-          failRun("Processing was interrupted. Retry when reconnected.");
+          failRun(t.errors.processingInterruptedUnconfirmed);
         };
 
         xhr.ontimeout = () => {
           if (activeJobIdRef.current !== clientJobId) return;
           if (degradeToAsync("timeout")) return;
-          failRun("Request timed out - the server may be overloaded. Try again.");
+          failRun(t.errors.requestTimedOut);
         };
 
         xhr.open("POST", appUrl("/api/v1/pipeline/batch"));
