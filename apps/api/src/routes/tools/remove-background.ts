@@ -114,6 +114,18 @@ const pipelineSettingsSchema = settingsShape
   .extend({ backgroundType: z.enum(["transparent", "color", "gradient", "blur"]).optional() })
   .superRefine(requireBackgroundColors);
 
+// Phase 1 (remove-background HTTP route) strictly rejects background fields
+// since it only returns the transparent mask.
+const phase1SettingsSchema = z
+  .object({
+    model: z.enum(BG_REMOVAL_MODELS).optional(),
+    edgeRefine: z.number().int().min(0).max(3).optional(),
+    decontaminate: z.boolean().optional(),
+  })
+  .strict({
+    message: "Background fields belong in Phase 2 (/effects); Phase 1 returns the transparent mask",
+  });
+
 /**
  * Composite the cutout over the requested background and name the result.
  * Shared by the pipeline/batch path of the AI handler and the registry process
@@ -152,7 +164,7 @@ async function compositeCutout(
 // the only kind reaching here is "ai-tool", but both paths call the same
 // compositeCutout so neither can drift from the other.
 registerAiJobHandler("remove-background", async (input, data, ctx) => {
-  const settings = settingsSchema.parse(data.settings);
+  const settings = phase1SettingsSchema.parse(data.settings);
   const standalone = data.kind === "ai-tool";
   const source = standalone ? input : await autoOrient(input);
 
@@ -169,7 +181,14 @@ registerAiJobHandler("remove-background", async (input, data, ctx) => {
     (percent, stage) => ctx.report(percent, stage),
   );
 
-  if (!standalone) return compositeCutout(transparentResult, source, settings, data.filename);
+  if (!standalone) {
+    return compositeCutout(
+      transparentResult,
+      source,
+      data.settings as RemoveBgSettings,
+      data.filename,
+    );
+  }
 
   // The mask IS the transparent result; cache original for effects re-apply
   const maskFilename = `${data.filename.replace(/\.[^.]+$/, "")}_mask.png`;
@@ -287,10 +306,10 @@ export function registerRemoveBackground(app: FastifyInstance) {
         return reply.status(400).send({ error: `Invalid image: ${validation.reason}` });
       }
 
-      let settings: z.infer<typeof settingsSchema>;
+      let settings: z.infer<typeof phase1SettingsSchema>;
       try {
         const parsed = settingsRaw ? JSON.parse(settingsRaw) : {};
-        const result = settingsSchema.safeParse(parsed);
+        const result = phase1SettingsSchema.safeParse(parsed);
         if (!result.success) {
           // Orphaned uploads/<jobId>/ dir will be cleaned by T10 TTL sweeper
           return reply
