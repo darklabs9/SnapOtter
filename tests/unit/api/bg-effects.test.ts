@@ -202,6 +202,38 @@ describe("createGradientBackground", () => {
     const grad2 = await createGradientBackground(100, 100, "#00ff00", "#ffff00");
     expect(grad1.equals(grad2)).toBe(false);
   });
+
+  describe("gradient corner orientation (#2279)", () => {
+    it("angle 180 has color1 at top and color2 at bottom", async () => {
+      const result = await createGradientBackground(3, 3, "#ff0000", "#0000ff", 180);
+      const { data } = await sharp(result)
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      expect(data[0]).toBeGreaterThan(200);
+      expect(data[1]).toBeLessThan(50);
+      expect(data[2]).toBeLessThan(50);
+      const i = (2 * 3 + 0) * 4;
+      expect(data[i]).toBeLessThan(50);
+      expect(data[i + 1]).toBeLessThan(50);
+      expect(data[i + 2]).toBeGreaterThan(200);
+    });
+
+    it("angle 90 has color1 at left and color2 at right", async () => {
+      const result = await createGradientBackground(3, 3, "#ff0000", "#0000ff", 90);
+      const { data } = await sharp(result)
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      expect(data[0]).toBeGreaterThan(200);
+      expect(data[1]).toBeLessThan(50);
+      expect(data[2]).toBeLessThan(50);
+      const i = (0 * 3 + 2) * 4;
+      expect(data[i]).toBeLessThan(50);
+      expect(data[i + 1]).toBeLessThan(50);
+      expect(data[i + 2]).toBeGreaterThan(200);
+    });
+  });
 });
 
 describe("compositeOnColor", () => {
