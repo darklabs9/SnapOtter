@@ -299,7 +299,11 @@ export function EraseObjectSettings({
       let cancelOnAnswer = false;
       const abandon = (err: Error) => {
         abandoned = true;
-        xhr.abort();
+        try {
+          xhr.abort();
+        } catch (abortErr) {
+          console.error("Aborting Erase Object request failed", abortErr);
+        }
         reject(err);
       };
 
@@ -537,7 +541,11 @@ export function EraseObjectSettings({
     let cancelOnAnswer = false;
     const abandonRequest = () => {
       abandoned = true;
-      xhr.abort();
+      try {
+        xhr.abort();
+      } catch (err) {
+        console.error("Aborting Erase Object request failed", err);
+      }
     };
     const dropRequest = () => {
       if (uploadDone && !accepted) {

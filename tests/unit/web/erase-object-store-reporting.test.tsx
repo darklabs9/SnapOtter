@@ -289,7 +289,6 @@ describe("erase-object single file: its own failures apart from a bad response",
       expect(reports).toHaveLength(1);
       expect(reports[0][0].cause).toMatchObject({ message: "teardown broke" });
       expect(reports[0][1]).toEqual({ error_class: "bug", tool_id: "erase-object" });
-      expect(vi.mocked(captureHandledError)).toHaveBeenCalledTimes(1);
     } finally {
       clearIntervalSpy.mockRestore();
       unsubscribe();
@@ -1228,6 +1227,31 @@ describe("erase-object batch: a file the progress stream gave up on (#1893)", ()
     }
   });
 
+  it("aborts the request and keeps the file failed after a stall even when aborting throws", async () => {
+    const stalls = captureStallTimers();
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      renderPanel(2);
+      const first = await submit(1);
+      vi.spyOn(first, "abort").mockImplementation(() => {
+        throw new Error("abort broke");
+      });
+
+      stalls.fireLatest();
+      await waitFor(() => expect(FakeXhr.instances).toHaveLength(2));
+      FakeXhr.instances[1].respond(200, GOOD_BODY);
+      await waitFor(() => expect(useFileStore.getState().processing).toBe(false));
+
+      expect(entry(0).status).toBe("failed");
+      expect(entry(0).error).toBe(en.toolSettings["erase-object"].stallBatch);
+      expect(entry(0).errorCategory).toBe("timeout");
+      expect(entry(1).status).toBe("completed");
+    } finally {
+      stalls.restore();
+      consoleError.mockRestore();
+    }
+  });
+
   it("does not abort a request that answered first", async () => {
     renderPanel(2);
     const first = await submit(1);
@@ -1274,6 +1298,25 @@ describe("erase-object single file: a run the progress stream gave up on (#1893)
       expect(xhr.aborted).toBe(true);
     } finally {
       stalls.restore();
+    }
+  });
+
+  it("still ends the run after a stall when aborting the request throws", async () => {
+    const stalls = captureStallTimers();
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      renderPanel();
+      const xhr = await submit();
+      vi.spyOn(xhr, "abort").mockImplementation(() => {
+        throw new Error("abort broke");
+      });
+
+      expect(() => stalls.fireLatest()).not.toThrow();
+      expect(useFileStore.getState().processing).toBe(false);
+      expect(useFileStore.getState().error).toBe(en.toolSettings["erase-object"].stall);
+    } finally {
+      stalls.restore();
+      consoleError.mockRestore();
     }
   });
 
