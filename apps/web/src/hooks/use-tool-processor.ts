@@ -1689,13 +1689,17 @@ export function useToolProcessor(toolId: string) {
           // events (#722 run-identity guard).
           if (activeJobIdRef.current !== clientJobId) return;
           if (degradeToAsync("socket")) return;
-          failRun("Processing was interrupted. Retry when reconnected.", "socket");
+          failRun("Processing was interrupted. Retry when reconnected.", "socket", "upload_error");
         };
 
         xhr.ontimeout = () => {
           if (activeJobIdRef.current !== clientJobId) return;
           if (degradeToAsync("timeout")) return;
-          failRun("Request timed out - the server may be overloaded. Try again.", "timeout");
+          failRun(
+            "Request timed out - the server may be overloaded. Try again.",
+            "timeout",
+            "timeout",
+          );
         };
 
         xhr.open("POST", `${appUrl(apiToolPath(toolId))}/batch`);

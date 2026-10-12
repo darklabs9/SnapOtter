@@ -325,6 +325,25 @@ describe("useToolProcessor batch recovery (#750)", () => {
     expect(useFileStore.getState().error).toBe(
       "Processing was interrupted. Retry when reconnected.",
     );
+    expect(useFileStore.getState().entries[0].errorCategory).toBe("upload_error");
+    expect(useFileStore.getState().entries[1].errorCategory).toBe("upload_error");
+    expect(useFileStore.getState().processing).toBe(false);
+
+    unmount();
+  });
+
+  it("fails immediately when the request times out mid-upload", () => {
+    const { unmount } = startBatchRun();
+
+    act(() => {
+      xhrs[0].ontimeout?.();
+    });
+
+    expect(useFileStore.getState().error).toBe(
+      "Request timed out - the server may be overloaded. Try again.",
+    );
+    expect(useFileStore.getState().entries[0].errorCategory).toBe("timeout");
+    expect(useFileStore.getState().entries[1].errorCategory).toBe("timeout");
     expect(useFileStore.getState().processing).toBe(false);
 
     unmount();
