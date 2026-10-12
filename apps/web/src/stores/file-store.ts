@@ -202,6 +202,7 @@ interface FileState {
   /** `claimed` is excluded: a patch touching `processedUrl` always resets it. */
   updateEntry: (index: number, patch: Omit<Partial<FileEntry>, "claimed">) => void;
   setBatchZip: (blob: Blob, filename: string) => void;
+  clearBatchZip: () => void;
   /** Index is required: selectedIndex can change while a job runs. */
   markClaimed: (index: number) => void;
   markBatchClaimed: () => void;
@@ -288,6 +289,7 @@ export const useFileStore = create<FileState>((set, get) => ({
   },
 
   addFiles: (files) => {
+    get().clearBatchZip();
     import("@/lib/analytics").then(({ track }) => {
       track(ANALYTICS_EVENTS.FILE_ADDED, { file_count: files.length });
     });
@@ -325,6 +327,7 @@ export const useFileStore = create<FileState>((set, get) => ({
   },
 
   removeFile: (index) => {
+    get().clearBatchZip();
     const { entries, selectedIndex } = get();
     const removed = entries[index];
     if (!removed) return;
@@ -351,6 +354,7 @@ export const useFileStore = create<FileState>((set, get) => ({
   },
 
   reorderFiles: (from, to) => {
+    get().clearBatchZip();
     const { entries, selectedIndex } = get();
     if (from === to) return;
     if (from < 0 || from >= entries.length || to < 0 || to >= entries.length) return;
@@ -371,6 +375,7 @@ export const useFileStore = create<FileState>((set, get) => ({
   },
 
   reverseFiles: () => {
+    get().clearBatchZip();
     const { entries, selectedIndex } = get();
     if (entries.length < 2) return;
 
@@ -425,6 +430,8 @@ export const useFileStore = create<FileState>((set, get) => ({
 
   setBatchZip: (blob, filename) =>
     set({ batchZipBlob: blob, batchZipFilename: filename, batchZipClaimed: false }),
+
+  clearBatchZip: () => set({ batchZipBlob: null, batchZipFilename: null, batchZipClaimed: false }),
 
   markClaimed: (index) => {
     const { entries, selectedIndex } = get();
