@@ -1,7 +1,10 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { videoEncodeArgsForContainer } from "../../../apps/api/src/lib/media-tool.js";
+import {
+  mp4TimescaleArgs,
+  videoEncodeArgsForContainer,
+} from "../../../apps/api/src/lib/media-tool.js";
 import { setEncoderInventoryForTests } from "../../../packages/media-engine/src/encoders.js";
 
 /**
@@ -47,6 +50,8 @@ describe("videoEncodeArgsForContainer", () => {
       "medium",
       "-pix_fmt",
       "yuv420p",
+      "-video_track_timescale",
+      "90000",
     ]);
   });
 
@@ -75,6 +80,32 @@ describe("videoEncodeArgsForContainer", () => {
     // Neither has a hardware mapping, so their software flags are correct.
     expect(videoEncodeArgsForContainer(".webm")).toContain("-crf");
     expect(videoEncodeArgsForContainer(".ogv")).toEqual(["-c:v", "libtheora", "-q:v", "7"]);
+  });
+});
+
+/**
+ * #2426: without a fixed timescale ffmpeg derives the mp4/mov track timescale
+ * from the source's avg_frame_rate, and a long gap between frames in a VFR
+ * screen recording overflows the 32-bit stts sample delta.
+ */
+describe("mp4TimescaleArgs", () => {
+  it("pins the video track timescale for mp4, m4v and mov outputs", () => {
+    for (const ext of [".mp4", ".m4v", ".mov", ".MOV"]) {
+      expect(mp4TimescaleArgs(ext)).toEqual(["-video_track_timescale", "90000"]);
+    }
+  });
+
+  it("adds nothing for containers without the mov muxer", () => {
+    for (const ext of [".mkv", ".webm", ".avi", ".ts", ".ogv", ".mpg"]) {
+      expect(mp4TimescaleArgs(ext)).toEqual([]);
+    }
+  });
+
+  it("is part of the H.264 encode args only for mp4-family containers", () => {
+    setEncoderInventoryForTests(WITH_NVENC);
+    delete process.env.SNAPOTTER_HW_ACCEL;
+    expect(videoEncodeArgsForContainer(".mov")).toContain("-video_track_timescale");
+    expect(videoEncodeArgsForContainer(".mkv")).not.toContain("-video_track_timescale");
   });
 });
 

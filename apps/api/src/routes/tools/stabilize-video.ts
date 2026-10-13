@@ -8,7 +8,12 @@ import {
 } from "@snapotter/media-engine";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { runFfmpegWithProgress, stageMediaInputs, videoContentType } from "../../lib/media-tool.js";
+import {
+  mp4TimescaleArgs,
+  runFfmpegWithProgress,
+  stageMediaInputs,
+  videoContentType,
+} from "../../lib/media-tool.js";
 import { createToolRoute } from "../tool-factory.js";
 
 const settingsSchema = z.object({
@@ -111,6 +116,7 @@ export function registerStabilizeVideo(app: FastifyInstance) {
           ...encodeArgs,
           ...audioArgs,
           ...faststartArgs(origExt),
+          ...mp4TimescaleArgs(origExt),
           outPath,
         ],
         info.durationS,

@@ -1,7 +1,7 @@
 import { resolveEncoder, videoCodecArgs } from "@snapotter/media-engine";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { runMediaTool } from "../../lib/media-tool.js";
+import { mp4TimescaleArgs, runMediaTool } from "../../lib/media-tool.js";
 import { createToolRoute } from "../tool-factory.js";
 
 const settingsSchema = z.object({
@@ -85,6 +85,7 @@ export function registerConvertVideo(app: FastifyInstance) {
           ...videoCodecArgs("h264", CRF[settings.quality].h264),
           "-pix_fmt",
           "yuv420p",
+          ...mp4TimescaleArgs(`.${settings.format}`),
           "-c:a",
           resolveEncoder("aac"),
           "-b:a",

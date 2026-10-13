@@ -4,7 +4,7 @@ import { videoCodecArgs } from "@snapotter/media-engine";
 import type { FastifyInstance } from "fastify";
 import sharp from "sharp";
 import { z } from "zod";
-import { runFfmpegWithProgress } from "../../lib/media-tool.js";
+import { mp4TimescaleArgs, runFfmpegWithProgress } from "../../lib/media-tool.js";
 import { InputValidationError } from "../../modality/contract.js";
 import { createToolRoute, type ToolProcessCtxV2 } from "../tool-factory.js";
 
@@ -61,6 +61,7 @@ export function registerImagesToVideo(app: FastifyInstance) {
         ...videoCodecArgs("h264", 20),
         "-pix_fmt",
         "yuv420p",
+        ...mp4TimescaleArgs(".mp4"),
         join(ctx.scratchDir, "media", "slideshow.mp4"),
       ];
 

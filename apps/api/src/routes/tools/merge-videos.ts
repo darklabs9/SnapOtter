@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { probeMedia, resolveEncoder, videoCodecArgs } from "@snapotter/media-engine";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { runFfmpegWithProgress, stageMediaInputs } from "../../lib/media-tool.js";
+import { mp4TimescaleArgs, runFfmpegWithProgress, stageMediaInputs } from "../../lib/media-tool.js";
 import { InputValidationError } from "../../modality/contract.js";
 import { createToolRoute } from "../tool-factory.js";
 
@@ -69,6 +69,7 @@ export function registerMergeVideos(app: FastifyInstance) {
         ...videoCodecArgs("h264", 20),
         "-pix_fmt",
         "yuv420p",
+        ...mp4TimescaleArgs(".mp4"),
         "-c:a",
         resolveEncoder("aac"),
         outPath,

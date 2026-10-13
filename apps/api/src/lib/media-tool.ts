@@ -27,12 +27,28 @@ export function videoContentType(ext: string): string {
 }
 
 /**
+ * Fixed video track timescale for re-encoded mp4/m4v/mov outputs (#2426).
+ * Without it ffmpeg derives the track timescale from the source's
+ * avg_frame_rate, which on VFR screen recordings is an odd rational such as
+ * 24339600/652277. A long static stretch (no frames for ~2 minutes) then
+ * overflows the 32-bit sample delta in the stts box and the muxer fails with
+ * "Not yet implemented in FFmpeg". 90000 keeps VFR timing and leaves room for
+ * gaps of over 13 hours. Other containers get no args.
+ */
+export function mp4TimescaleArgs(ext: string): string[] {
+  const lower = ext.toLowerCase();
+  return lower === ".mp4" || lower === ".m4v" || lower === ".mov"
+    ? ["-video_track_timescale", "90000"]
+    : [];
+}
+
+/**
  * Video encode args valid for the given OUTPUT container extension.
  * WebM accepts only VP8/VP9/AV1, OGV only Theora; everything else
  * (mp4/mov/mkv/avi/ts) gets H.264. Hardcoding H.264 into a preserved
  * non-mp4 container is a real bug: ffmpeg cannot mux H.264 into WebM and
  * fails the header write ("Invalid argument", exit 234). Arg sets mirror
- * the tested convert-video encoders.
+ * the tested convert-video encoders. mp4/m4v/mov also get mp4TimescaleArgs.
  */
 export function videoEncodeArgsForContainer(ext: string): string[] {
   const lower = ext.toLowerCase();
@@ -45,7 +61,7 @@ export function videoEncodeArgsForContainer(ext: string): string[] {
   if (lower === ".ogv" || lower === ".ogg") {
     return ["-c:v", resolveEncoder("theora"), "-q:v", "7"];
   }
-  return [...videoCodecArgs("h264", 20), "-pix_fmt", "yuv420p"];
+  return [...videoCodecArgs("h264", 20), "-pix_fmt", "yuv420p", ...mp4TimescaleArgs(lower)];
 }
 
 /**

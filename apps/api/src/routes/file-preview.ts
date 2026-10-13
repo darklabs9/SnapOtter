@@ -32,6 +32,7 @@ import { reportError } from "../lib/error-report.js";
 import { friendlyError } from "../lib/errors.js";
 import { getStoredFilePath } from "../lib/file-storage.js";
 import { logger } from "../lib/logger.js";
+import { mp4TimescaleArgs } from "../lib/media-tool.js";
 import { hasEffectivePermission, requirePermission } from "../permissions.js";
 import { requireAuth } from "../plugins/auth.js";
 
@@ -409,6 +410,7 @@ export async function filePreviewRoutes(app: FastifyInstance): Promise<void> {
               "ultrafast",
               "-crf",
               "28",
+              ...mp4TimescaleArgs(".mp4"),
               "-c:a",
               "aac",
               "-b:a",
@@ -573,6 +575,7 @@ export async function filePreviewRoutes(app: FastifyInstance): Promise<void> {
               "ultrafast",
               "-crf",
               "28",
+              ...mp4TimescaleArgs(".mp4"),
               "-c:a",
               "aac",
               "-b:a",

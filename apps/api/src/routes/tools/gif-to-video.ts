@@ -1,7 +1,7 @@
 import { resolveEncoder, videoCodecArgs } from "@snapotter/media-engine";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { runMediaTool } from "../../lib/media-tool.js";
+import { mp4TimescaleArgs, runMediaTool } from "../../lib/media-tool.js";
 import { createToolRoute } from "../tool-factory.js";
 
 const settingsSchema = z.object({
@@ -56,6 +56,7 @@ export function registerGifToVideo(app: FastifyInstance) {
           ...videoCodecArgs("h264", 20),
           "-pix_fmt",
           "yuv420p",
+          ...mp4TimescaleArgs(`.${settings.format}`),
           "-movflags",
           "+faststart",
           "-an",
