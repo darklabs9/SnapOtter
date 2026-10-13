@@ -156,6 +156,10 @@ export async function fileRoutes(app: FastifyInstance): Promise<void> {
             }
           } catch (err) {
             if ((err as Error).message.includes("SVGZ file does not contain")) {
+              request.log.warn(
+                { err, filename: part.filename },
+                "Uploaded .svgz file does not contain SVG, storing as opaque file",
+              );
               safeBuffer = buffer;
             } else if (
               (err as { statusCode?: number }).statusCode === 400 ||

@@ -397,7 +397,9 @@ export function SignPdfSettings({ signProps }: { signProps?: SignProps }) {
       abandoned = true;
       try {
         xhr.abort();
-      } catch (_e) {}
+      } catch (_e) {
+        console.debug("Ignored xhr.abort error:", _e);
+      }
     };
 
     const subscription = subscribeSignPdfJobProgress(clientJobId, {

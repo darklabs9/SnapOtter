@@ -382,7 +382,9 @@ export function useToolProcessor(toolId: string) {
       if (eventSourceRef.current === es) eventSourceRef.current = null;
       try {
         xhrRef.current?.abort();
-      } catch (_e) {}
+      } catch (_e) {
+        console.debug("Ignored xhr.abort error:", _e);
+      }
       batchRunRef.current = null;
       setProgress(IDLE_PROGRESS);
       // The store write that threw may throw again, so each write gets its
@@ -539,7 +541,9 @@ export function useToolProcessor(toolId: string) {
               eventSourceRef.current = null;
               try {
                 xhrRef.current?.abort();
-              } catch (_e) {}
+              } catch (_e) {
+                console.debug("Ignored xhr.abort error:", _e);
+              }
               const run = batchRunRef.current;
               if (run) {
                 run.onTerminal(frame);
@@ -583,7 +587,9 @@ export function useToolProcessor(toolId: string) {
               // cannot replace this specific error with a generic one.
               try {
                 xhrRef.current?.abort();
-              } catch (_e) {}
+              } catch (_e) {
+                console.debug("Ignored xhr.abort error:", _e);
+              }
               setProgress(IDLE_PROGRESS);
               // Each write gets its own guard and the entries settle last, so
               // a write that throws can't leave the run at processing. The run
@@ -620,7 +626,9 @@ export function useToolProcessor(toolId: string) {
               // this result. abort() only emits onabort, which stays silent.
               try {
                 xhrRef.current?.abort();
-              } catch (_e) {}
+              } catch (_e) {
+                console.debug("Ignored xhr.abort error:", _e);
+              }
               const idx = activeEntryIndexRef.current ?? useFileStore.getState().selectedIndex;
 
               if (result.savedFileId) {
@@ -779,7 +787,9 @@ export function useToolProcessor(toolId: string) {
       if (xhrRef.current) {
         try {
           xhrRef.current.abort();
-        } catch (_e) {}
+        } catch (_e) {
+          console.debug("Ignored xhr.abort error:", _e);
+        }
       }
       if (stallTimerRef.current) clearTimeout(stallTimerRef.current);
       if (jobEvidenceTimerRef.current) clearTimeout(jobEvidenceTimerRef.current);
@@ -1572,7 +1582,9 @@ export function useToolProcessor(toolId: string) {
             // stops ingress when no job row exists server-side yet.
             try {
               xhrRef.current?.abort();
-            } catch (_e) {}
+            } catch (_e) {
+              console.debug("Ignored xhr.abort error:", _e);
+            }
             failRun("Canceled", "canceled");
             return true;
           },

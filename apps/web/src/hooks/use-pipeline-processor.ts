@@ -251,7 +251,9 @@ export function usePipelineProcessor() {
       try {
         try {
           xhrRef.current?.abort();
-        } catch (_e) {}
+        } catch (_e) {
+          console.debug("Ignored xhr.abort error:", _e);
+        }
         clearJobEvidenceTimer();
         clearStallTimer();
         if (elapsedRef.current) clearInterval(elapsedRef.current);
@@ -300,7 +302,9 @@ export function usePipelineProcessor() {
       if (eventSourceRef.current === es) eventSourceRef.current = null;
       try {
         xhrRef.current?.abort();
-      } catch (_e) {}
+      } catch (_e) {
+        console.debug("Ignored xhr.abort error:", _e);
+      }
       batchRunRef.current = null;
       setProgress(IDLE_PROGRESS);
       // The store write that threw may throw again, so each write gets its
@@ -453,7 +457,9 @@ export function usePipelineProcessor() {
               eventSourceRef.current = null;
               try {
                 xhrRef.current?.abort();
-              } catch (_e) {}
+              } catch (_e) {
+                console.debug("Ignored xhr.abort error:", _e);
+              }
               const run = batchRunRef.current;
               if (run) {
                 run.onTerminal(frame);
@@ -492,7 +498,9 @@ export function usePipelineProcessor() {
               eventSourceRef.current = null;
               try {
                 xhrRef.current?.abort();
-              } catch (_e) {}
+              } catch (_e) {
+                console.debug("Ignored xhr.abort error:", _e);
+              }
               batchRunRef.current = null;
               setProgress(IDLE_PROGRESS);
               // Each write gets its own guard and the entries settle last, so
@@ -529,7 +537,9 @@ export function usePipelineProcessor() {
               // fire a late onerror/ontimeout over this result.
               try {
                 xhrRef.current?.abort();
-              } catch (_e) {}
+              } catch (_e) {
+                console.debug("Ignored xhr.abort error:", _e);
+              }
               const idx = activeEntryIndexRef.current ?? useFileStore.getState().selectedIndex;
 
               useFileStore.getState().updateEntry(idx, {
@@ -623,7 +633,9 @@ export function usePipelineProcessor() {
       if (xhrRef.current) {
         try {
           xhrRef.current.abort();
-        } catch (_e) {}
+        } catch (_e) {
+          console.debug("Ignored xhr.abort error:", _e);
+        }
       }
       if (stallTimerRef.current) clearTimeout(stallTimerRef.current);
       if (jobEvidenceTimerRef.current) clearTimeout(jobEvidenceTimerRef.current);

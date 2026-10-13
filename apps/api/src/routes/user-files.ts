@@ -310,6 +310,10 @@ export async function userFileRoutes(app: FastifyInstance): Promise<void> {
             } catch (err) {
               if ((err as Error).message.includes("SVGZ file does not contain")) {
                 // Not a valid SVG inside, let it fall through to be stored as octet-stream
+                request.log.warn(
+                  { err, filename: part.filename },
+                  "Uploaded .svgz file does not contain SVG, storing as opaque file",
+                );
                 safeBuffer = buffer;
               } else if (
                 (err as { statusCode?: number }).statusCode === 400 ||
@@ -871,6 +875,10 @@ export async function userFileRoutes(app: FastifyInstance): Promise<void> {
         }
       } catch (err) {
         if ((err as Error).message.includes("SVGZ file does not contain")) {
+          request.log.warn(
+            { err, filename },
+            "Result .svgz file does not contain SVG, storing as opaque file",
+          );
           safeResultBuffer = fileBuffer;
         } else if (
           (err as { statusCode?: number }).statusCode === 400 ||
