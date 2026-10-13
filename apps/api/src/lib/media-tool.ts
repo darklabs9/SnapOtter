@@ -32,8 +32,8 @@ export function videoContentType(ext: string): string {
  * avg_frame_rate, which on VFR screen recordings is an odd rational such as
  * 24339600/652277. A long static stretch (no frames for ~2 minutes) then
  * overflows the 32-bit sample delta in the stts box and the muxer fails with
- * "Not yet implemented in FFmpeg". 90000 keeps VFR timing and leaves room for
- * gaps of over 13 hours. Other containers get no args.
+ * "Not yet implemented in FFmpeg". 90000 keeps VFR timing and allows gaps of
+ * up to ~6.6 hours (INT_MAX ticks). Other containers get no args.
  */
 export function mp4TimescaleArgs(ext: string): string[] {
   const lower = ext.toLowerCase();
