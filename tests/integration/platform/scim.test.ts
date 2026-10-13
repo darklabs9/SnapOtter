@@ -7,7 +7,7 @@ import {
   hashPassword,
   verifyPassword,
 } from "../../../apps/api/src/plugins/auth.js";
-import { raceInserts, raceUpdates } from "../../helpers/pg-race.js";
+import { raceInserts, raceRowLocks, raceUpdates } from "../../helpers/pg-race.js";
 import { buildTestApp, type TestApp } from "../test-server.js";
 
 let testApp: TestApp;
@@ -1325,7 +1325,7 @@ describe("SCIM licensed Users and Groups CRUD", () => {
           payload: { userName: target, active: true },
         });
 
-      const results = await raceUpdates("users", 2, () =>
+      const results = await raceRowLocks("users", 2, () =>
         Promise.all([rename(a.id), rename(b.id)]),
       );
       const statuses = results.map((r) => r.statusCode).sort();
@@ -1587,7 +1587,7 @@ describe("SCIM licensed Users and Groups CRUD", () => {
           },
         });
 
-      const results = await raceUpdates("users", 2, () =>
+      const results = await raceRowLocks("users", 2, () =>
         Promise.all([rename(a.id), rename(b.id)]),
       );
       const statuses = results.map((r) => r.statusCode).sort();
