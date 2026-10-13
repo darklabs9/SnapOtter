@@ -37,6 +37,7 @@ import {
   canAssignRole,
   canManageTargetRole,
   getPermissions,
+  hasEffectivePermission,
   isDisabledRole,
   requirePermission,
 } from "../permissions.js";
@@ -45,6 +46,13 @@ import type { ExternalMfaOutcome, MfaPolicy } from "./mfa.js";
 const scryptAsync = promisify(scrypt);
 
 // ── Types ─────────────────────────────────────────────────────────
+
+export class EscalationDeniedError extends Error {
+  constructor() {
+    super("Cannot manage a user beyond your role authority");
+    this.name = "EscalationDeniedError";
+  }
+}
 
 export interface AuthUser {
   id: string;
@@ -1445,6 +1453,36 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         await db.transaction(async (tx) => {
           // Last admin protection, under the lock every admin removal shares (#2231).
           if (updates.role && updates.role !== "admin") await assertNotLastAdmin(tx, id);
+
+          const [currentAdmin] = await tx
+            .select({ role: schema.users.role })
+            .from(schema.users)
+            .where(eq(schema.users.id, admin.id));
+          const [currentUser] = await tx
+            .select({ role: schema.users.role })
+            .from(schema.users)
+            .where(eq(schema.users.id, id));
+
+          if (!currentAdmin || !currentUser) {
+            throw new Error("NOT_FOUND");
+          }
+
+          const currentActor = { ...admin, role: currentAdmin.role };
+
+          if (
+            !(await hasEffectivePermission(currentActor, "users:manage")) ||
+            !(await canManageTargetRole(currentActor, currentUser.role))
+          ) {
+            throw new EscalationDeniedError();
+          }
+
+          if (
+            updates.role &&
+            !(await canAssignRole({ ...admin, role: currentAdmin.role }, updates.role))
+          ) {
+            throw new EscalationDeniedError();
+          }
+
           await tx.update(schema.users).set(updates).where(eq(schema.users.id, id));
           // Invalidate all sessions when role changes to force re-login with new permissions
           if (roleChanged) {
@@ -1452,6 +1490,15 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
           }
         });
       } catch (err) {
+        if (err instanceof EscalationDeniedError) {
+          return reply.status(403).send({
+            error: "Cannot manage a user beyond your role authority",
+            code: "ESCALATION_DENIED",
+          });
+        }
+        if (err instanceof Error && err.message === "NOT_FOUND") {
+          return reply.status(404).send({ error: "User not found", code: "NOT_FOUND" });
+        }
         if (err instanceof LastAdminError) {
           return reply.status(400).send({
             error: "Cannot demote the last admin",
@@ -1583,6 +1630,15 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       try {
         await db.transaction((tx) => assertNotLastAdmin(tx, id));
       } catch (err) {
+        if (err instanceof EscalationDeniedError) {
+          return reply.status(403).send({
+            error: "Cannot manage a user beyond your role authority",
+            code: "ESCALATION_DENIED",
+          });
+        }
+        if (err instanceof Error && err.message === "NOT_FOUND") {
+          return reply.status(404).send({ error: "User not found", code: "NOT_FOUND" });
+        }
         if (err instanceof LastAdminError) {
           return reply.status(400).send({
             error: "Cannot delete the last admin",
@@ -1608,6 +1664,28 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         await db.transaction(async (tx) => {
           await assertNotLastAdmin(tx, id);
 
+          const [currentAdmin] = await tx
+            .select({ role: schema.users.role })
+            .from(schema.users)
+            .where(eq(schema.users.id, admin.id));
+          const [currentUser] = await tx
+            .select({ role: schema.users.role })
+            .from(schema.users)
+            .where(eq(schema.users.id, id));
+
+          if (!currentAdmin || !currentUser) {
+            throw new Error("NOT_FOUND");
+          }
+
+          const currentActor = { ...admin, role: currentAdmin.role };
+
+          if (
+            !(await hasEffectivePermission(currentActor, "users:manage")) ||
+            !(await canManageTargetRole(currentActor, currentUser.role))
+          ) {
+            throw new EscalationDeniedError();
+          }
+
           // Delete associated sessions
           await tx.delete(schema.sessions).where(eq(schema.sessions.userId, id));
 
@@ -1615,6 +1693,15 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
           await tx.delete(schema.users).where(eq(schema.users.id, id));
         });
       } catch (err) {
+        if (err instanceof EscalationDeniedError) {
+          return reply.status(403).send({
+            error: "Cannot manage a user beyond your role authority",
+            code: "ESCALATION_DENIED",
+          });
+        }
+        if (err instanceof Error && err.message === "NOT_FOUND") {
+          return reply.status(404).send({ error: "User not found", code: "NOT_FOUND" });
+        }
         if (err instanceof LastAdminError) {
           return reply.status(400).send({
             error: "Cannot delete the last admin",
