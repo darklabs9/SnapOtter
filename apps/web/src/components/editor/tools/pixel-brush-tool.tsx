@@ -219,14 +219,7 @@ function applyPixelBrush(
     );
   }
 
-  // Update the source snapshot using fast bulk copies for smudge continuity
-  for (let py = 0; py < h; py++) {
-    const srcIdx = ((top + py) * canvasSize.width + left) * 4;
-    const dstIdx = py * w * 4;
-    source.data.set(imageData.data.subarray(dstIdx, dstIdx + w * 4), srcIdx);
-  }
-
-  copyBrushCircle(imageData, strokeCtx, left, top, centerX, centerY, halfSize);
+  copyBrushCircle(imageData, strokeCtx, source, canvasSize, left, top, centerX, centerY, halfSize);
 }
 
 // Lift the brushed circle out of the working buffer onto the stroke canvas. Every
@@ -235,6 +228,8 @@ function applyPixelBrush(
 function copyBrushCircle(
   region: ImageData,
   strokeCtx: CanvasRenderingContext2D,
+  sourceSnapshot: ImageData,
+  canvasSize: { width: number; height: number },
   left: number,
   top: number,
   centerX: number,
@@ -247,11 +242,26 @@ function copyBrushCircle(
       const dx = left + px - centerX;
       const dy = top + py - centerY;
       if (dx * dx + dy * dy > halfSize * halfSize) continue;
+
       const idx = (py * region.width + px) * 4;
-      patch.data[idx] = region.data[idx];
-      patch.data[idx + 1] = region.data[idx + 1];
-      patch.data[idx + 2] = region.data[idx + 2];
-      patch.data[idx + 3] = region.data[idx + 3];
+      const r = region.data[idx];
+      const g = region.data[idx + 1];
+      const b = region.data[idx + 2];
+      const a = region.data[idx + 3];
+
+      patch.data[idx] = r;
+      patch.data[idx + 1] = g;
+      patch.data[idx + 2] = b;
+      patch.data[idx + 3] = a;
+
+      // Update the source snapshot for smudge continuity
+      const srcIdx = ((top + py) * canvasSize.width + (left + px)) * 4;
+      if (srcIdx >= 0 && srcIdx + 3 < sourceSnapshot.data.length) {
+        sourceSnapshot.data[srcIdx] = r;
+        sourceSnapshot.data[srcIdx + 1] = g;
+        sourceSnapshot.data[srcIdx + 2] = b;
+        sourceSnapshot.data[srcIdx + 3] = a;
+      }
     }
   }
   strokeCtx.putImageData(patch, left, top);
